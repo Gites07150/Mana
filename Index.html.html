@@ -1,0 +1,1840 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>The House Station</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --cream:#F2EDE6;--cream2:#EDE7DF;--cream3:#E5DDD4;
+  --white:#FAF7F3;--bark:#9B7E60;--bark2:#7A6048;
+  --stone:#2E2820;--dust:#B5A593;--fog:#D4CBC0;
+  --red:#B05050;--green:#5A8A6A;
+  --border:rgba(155,126,96,0.15);--border2:rgba(155,126,96,0.25);
+}
+html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:var(--cream);color:var(--stone);overflow-x:hidden;-webkit-text-size-adjust:100%;}
+.wrap{width:100%;max-width:430px;margin:0 auto;min-height:100vh;background:var(--cream);}
+.screen{display:none}.screen.active{display:block}
+.sync-bar{display:none;background:var(--green);color:#fff;text-align:center;padding:5px;font-size:8px;letter-spacing:2px;text-transform:uppercase;font-weight:600;}
+.sync-bar.warn{background:var(--red);}.sync-bar.show{display:block;}
+.load-ov{position:fixed;inset:0;background:var(--cream);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+.load-ov.gone{display:none;}
+.load-spinner{width:28px;height:28px;border:2px solid var(--fog);border-top-color:var(--bark);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:var(--dust);}
+.load-logo{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--stone);}
+.hero{position:relative;height:240px;overflow:hidden;background:var(--cream3);}
+.hero-img{position:absolute;inset:0;background-size:cover;background-position:center;}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(30,22,14,0) 30%,rgba(30,22,14,0.65) 100%);}
+.hero-content{position:absolute;bottom:0;left:0;right:0;padding:0 20px 22px;}
+.av-wrap{width:48px;height:48px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;margin-bottom:10px;cursor:pointer;overflow:hidden;position:relative;backdrop-filter:blur(8px);}
+.av-wrap svg{width:20px;height:20px;stroke:rgba(255,255,255,0.7);fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;}
+.av-wrap img{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.h-name{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:400;color:#fff;line-height:1.1;margin-bottom:2px;}
+.h-sub{font-size:10px;font-weight:300;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-bottom:6px;}
+.h-addr{font-size:10px;color:rgba(255,255,255,0.4);display:flex;align-items:center;gap:4px;}
+.h-addr svg{width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;}
+.weather-widget{position:absolute;top:14px;right:16px;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.18);border-radius:20px;padding:5px 11px 5px 8px;cursor:default;}
+.weather-icon{font-size:18px;line-height:1;}
+.weather-temp{font-size:13px;font-weight:600;color:#fff;line-height:1.1;}
+.weather-loading{font-size:9px;color:rgba(255,255,255,0.5);letter-spacing:1px;}
+.lang-bar{background:var(--white);border-bottom:1px solid var(--border);display:flex;padding:0 12px;overflow-x:auto;scrollbar-width:none;}
+.lang-bar::-webkit-scrollbar{display:none}
+.flag-btn{border:none;background:none;padding:8px 7px 7px;font-size:22px;cursor:pointer;position:relative;flex-shrink:0;opacity:.3;transition:opacity .2s;}
+.flag-btn.on{opacity:1}
+.flag-btn.on::after{content:'';position:absolute;bottom:0;left:7px;right:7px;height:1.5px;background:var(--bark);}
+.sec-lbl{padding:18px 18px 6px;display:flex;align-items:center;gap:10px;}
+.sec-line{flex:1;height:1px;background:var(--border);}
+.sec-txt{font-size:7px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--dust);white-space:nowrap;}
+.cat-sep{padding:12px 18px 6px;display:flex;align-items:center;gap:10px;}
+.cat-sep-line{flex:1;height:1px;background:var(--border);}
+.cat-sep-txt{font-size:7px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--bark);white-space:nowrap;opacity:.75;}
+.tile-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px;margin-bottom:10px;}
+.tile{background:var(--cream2);border:1px solid var(--border);border-radius:6px;padding:16px 10px 14px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:120px;position:relative;overflow:hidden;transition:background .15s;-webkit-user-select:none;user-select:none;text-align:center;gap:10px;}
+.tile:active{background:var(--cream3);}
+.tile-ghost{visibility:hidden;pointer-events:none;cursor:default;}
+.tile-lbl{font-size:10px;font-weight:500;letter-spacing:.3px;color:var(--stone);line-height:1.3;text-align:center;}
+.tile-ico{display:flex;align-items:center;justify-content:center;}
+.tile-ico svg{width:36px;height:36px;stroke:var(--bark);fill:none;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;display:block;}
+.e-dot{display:none;position:absolute;top:7px;right:7px;width:20px;height:20px;background:var(--bark);border-radius:50%;color:#fff;font-size:11px;align-items:center;justify-content:center;cursor:pointer;z-index:5;line-height:1;}
+.adm .tile .e-dot{display:flex;}
+.footer{padding:16px 18px 44px;text-align:center;}
+.footer-line{width:30px;height:1px;background:var(--fog);margin:0 auto 10px;}
+.footer-txt{font-size:7px;letter-spacing:4px;text-transform:uppercase;color:var(--fog);}
+.admin-bar{display:none;background:var(--white);border-bottom:1px solid var(--border);padding:9px 16px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.admin-bar.on{display:flex;}
+.ab-lbl{font-size:8px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--bark);display:flex;align-items:center;gap:6px;}
+.ab-dot-g{width:5px;height:5px;background:var(--green);border-radius:50%;}
+.ab-btns{display:flex;gap:6px;}
+.ab-save{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;background:var(--stone);color:var(--white);border:none;padding:6px 13px;border-radius:2px;cursor:pointer;font-family:inherit;font-weight:600;}
+.ab-exit{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dust);cursor:pointer;background:none;border:1px solid var(--border2);padding:6px 13px;border-radius:2px;font-family:inherit;font-weight:600;}
+.admin-panel{display:none;background:var(--cream2);border-bottom:1px solid var(--border);}
+.admin-panel.on{display:block;}
+.ap-sec{padding:14px 16px 12px;border-bottom:1px solid var(--border);}
+.ap-hd{font-size:8px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--bark);margin-bottom:10px;}
+.ap-f{margin-bottom:8px;}
+.ap-f label{display:block;font-size:7px;letter-spacing:2px;text-transform:uppercase;color:var(--dust);margin-bottom:3px;font-weight:600;}
+.ap-in,.ap-ta{width:100%;border:1px solid var(--border2);border-radius:2px;padding:8px 11px;font-size:13px;font-family:inherit;background:var(--white);color:var(--stone);outline:none;}
+.ap-ta{resize:vertical;min-height:60px;}
+.ap-in:focus,.ap-ta:focus{border-color:var(--bark);}
+.ap-img-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;}
+.ap-fb{background:var(--white);border:1px solid var(--border2);padding:7px 12px;border-radius:2px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dust);cursor:pointer;font-family:inherit;font-weight:600;}
+.ap-del{background:none;border:1px solid rgba(176,80,80,.3);padding:7px 12px;border-radius:2px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--red);cursor:pointer;font-family:inherit;font-weight:600;display:none;}
+.ap-del.on{display:inline-block;}
+.ap-preview{width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid var(--border);display:none;}
+.ap-preview.on{display:block;}
+.ap-preview-bg{width:56px;height:36px;border-radius:3px;object-fit:cover;border:1px solid var(--border);display:none;}
+.ap-preview-bg.on{display:block;}
+/* SUPABASE SETUP */
+.supa-setup{background:var(--white);border:1px solid var(--border2);border-radius:4px;overflow:hidden;margin-bottom:12px;}
+.supa-step{padding:12px 14px;border-bottom:1px solid var(--border);}
+.supa-step:last-child{border-bottom:none;}
+.supa-step-hd{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.supa-num{width:20px;height:20px;border-radius:50%;background:var(--bark);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.supa-step-title{font-size:10px;font-weight:600;color:var(--stone);}
+.supa-step p{font-size:10px;color:var(--dust);line-height:1.6;margin-left:28px;}
+.cs-dot{width:9px;height:9px;border-radius:50%;background:var(--fog);flex-shrink:0;}
+.cs-dot.ok{background:var(--green);}.cs-dot.err{background:var(--red);}
+.page-top{background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;padding:12px 14px;position:sticky;top:0;z-index:10;}
+.bk-btn{width:34px;height:34px;border-radius:50%;background:var(--cream2);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.bk-btn svg{width:13px;height:13px;stroke:var(--stone);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.page-ttl{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:400;color:var(--stone);}
+.page-body{padding:12px 12px 50px;}
+.ic{background:var(--white);border-radius:4px;padding:16px;margin-bottom:8px;border:1px solid var(--border);}
+.ic-lbl{font-size:7px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--dust);margin-bottom:5px;}
+.ic-val{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:400;color:var(--stone);line-height:1.5;word-break:break-word;}
+.ic-val-mono{font-size:20px;font-weight:500;color:var(--stone);font-family:'Courier New',monospace;letter-spacing:1px;}
+.btn-main{display:inline-flex;align-items:center;gap:6px;margin-top:11px;background:var(--stone);color:var(--white);padding:9px 18px;font-size:8px;letter-spacing:2px;text-transform:uppercase;font-weight:600;border-radius:2px;border:none;cursor:pointer;font-family:inherit;text-decoration:none;transition:opacity .15s;}
+.btn-main:active{opacity:.8;}
+.btn-sec{display:inline-flex;align-items:center;gap:6px;margin-top:11px;margin-left:7px;background:none;color:var(--bark);padding:8px 15px;font-size:8px;letter-spacing:2px;text-transform:uppercase;font-weight:600;border-radius:2px;border:1px solid var(--border2);cursor:pointer;font-family:inherit;text-decoration:none;transition:background .15s;}
+.btn-sec:active{background:var(--cream2);}
+.btn-call{display:inline-flex;align-items:center;gap:6px;margin-top:11px;background:var(--green);color:#fff;padding:9px 18px;font-size:8px;letter-spacing:2px;text-transform:uppercase;font-weight:600;border-radius:2px;border:none;cursor:pointer;font-family:inherit;text-decoration:none;}
+.cl-card{background:var(--white);border-radius:4px;margin-bottom:8px;border:1px solid var(--border);overflow:hidden;}
+.cl-hd{padding:11px 16px 9px;border-bottom:1px solid var(--border);}
+.cl-hd-txt{font-size:7px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--dust);}
+.cl-row{display:flex;align-items:center;gap:11px;padding:11px 16px;border-bottom:1px solid var(--border);cursor:pointer;-webkit-user-select:none;user-select:none;transition:background .12s;}
+.cl-row:last-child{border-bottom:none;}.cl-row:active{background:var(--cream2);}
+.cl-row.done .cl-txt{color:var(--fog);text-decoration:line-through;}
+.chk{width:20px;height:20px;border:1.5px solid var(--fog);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .18s;}
+.chk.ok{background:var(--green);border-color:var(--green);}
+.chk svg{width:10px;height:10px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;opacity:0;}
+.chk.ok svg{opacity:1;}
+.cl-txt{font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--stone);line-height:1.4;}
+.place-card{background:var(--white);border-radius:4px;padding:15px 16px;margin-bottom:8px;border:1px solid var(--border);}
+.place-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:3px;}
+.place-name{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--stone);}
+.place-badge{font-size:8px;font-weight:600;letter-spacing:1px;color:var(--bark);background:var(--cream2);padding:3px 8px;border-radius:2px;flex-shrink:0;}
+.place-meta{font-size:10px;color:var(--dust);margin-bottom:10px;font-weight:400;}
+.place-actions{display:flex;gap:7px;flex-wrap:wrap;}
+.svc-cat-hd{font-size:7px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--bark);padding:10px 0 6px;margin-top:4px;border-top:1px solid var(--border);}
+.svc-cat-hd:first-child{border-top:none;margin-top:0;}
+.rv{background:var(--white);border-radius:4px;padding:20px 18px;border:1px solid var(--border);}
+.stars{display:flex;gap:3px;margin-bottom:12px;}
+.stars svg{width:16px;height:16px;fill:var(--bark);stroke:none;}
+.rv-msg{font-family:'Cormorant Garamond',serif;font-size:19px;font-style:italic;color:var(--stone);line-height:1.7;margin-bottom:18px;}
+.map-card{background:var(--white);border-radius:4px;margin-bottom:8px;border:1px solid var(--border);overflow:hidden;}
+.map-iframe{width:100%;height:190px;border:none;display:block;}
+
+/* GALERIE */
+.gallery-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 12px 50px;}
+.gallery-item{position:relative;border-radius:4px;overflow:hidden;aspect-ratio:1;background:var(--cream3);border:1px solid var(--border);}
+.gallery-item img{width:100%;height:100%;object-fit:cover;display:block;}
+.gallery-item-cap{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(30,22,14,.6));padding:6px 8px 7px;font-size:9px;color:#fff;letter-spacing:.5px;}
+.gallery-full{display:none;position:fixed;inset:0;background:rgba(20,14,6,.92);z-index:400;align-items:center;justify-content:center;flex-direction:column;}
+.gallery-full.on{display:flex;}
+.gallery-full img{max-width:100%;max-height:80vh;object-fit:contain;border-radius:2px;}
+.gallery-full-cap{color:rgba(255,255,255,.6);font-size:10px;margin-top:10px;letter-spacing:1px;}
+.gallery-close{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.15);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.gallery-close svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;}
+.gallery-nav{display:flex;gap:16px;margin-top:14px;}
+.gallery-nav button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;padding:8px 18px;border-radius:2px;font-size:8px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-family:inherit;}
+.gallery-section-lbl{padding:14px 12px 6px;font-size:7px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--bark);}
+.gallery-empty{padding:40px 20px;text-align:center;color:var(--dust);font-size:12px;line-height:1.8;}
+
+/* HISTOIRE */
+.histoire-body{padding:16px 16px 60px;}
+.histoire-hero{width:100%;height:180px;object-fit:cover;border-radius:4px;margin-bottom:16px;display:block;}
+.histoire-title{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:400;color:var(--stone);margin-bottom:8px;line-height:1.2;}
+.histoire-date{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:var(--bark);margin-bottom:18px;}
+.histoire-txt{font-family:'Cormorant Garamond',serif;font-size:17px;color:var(--stone);line-height:1.9;white-space:pre-wrap;}
+.histoire-quote{margin:20px 0;padding:14px 18px;border-left:2px solid var(--bark);background:var(--white);border-radius:0 4px 4px 0;}
+.histoire-quote p{font-family:'Cormorant Garamond',serif;font-size:18px;font-style:italic;color:var(--stone);line-height:1.7;}
+
+.fab{position:fixed;bottom:22px;right:18px;width:46px;height:46px;border-radius:50%;background:var(--stone);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(30,22,14,.25);z-index:200;}
+.fab svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.fab-dot{position:absolute;top:-1px;right:-1px;width:11px;height:11px;background:var(--bark);border-radius:50%;border:2px solid var(--cream);display:none;}
+.fab-dot.on{display:block;}
+.chat-ov{display:none;position:fixed;inset:0;background:rgba(20,14,6,.4);z-index:210;}.chat-ov.on{display:block;}
+.chat-panel{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:100%;max-width:430px;height:72vh;background:var(--white);border-radius:14px 14px 0 0;z-index:220;display:flex;flex-direction:column;transition:transform .32s ease;border-top:1px solid var(--border);}
+.chat-panel.on{transform:translateX(-50%) translateY(0);}
+.ct-top{padding:10px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.ct-pill{width:26px;height:2px;background:var(--fog);border-radius:2px;margin:0 auto 11px;}
+.ct-row{display:flex;align-items:center;justify-content:space-between;}
+.ct-av{width:30px;height:30px;border-radius:50%;background:var(--stone);display:flex;align-items:center;justify-content:center;}
+.ct-av svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}
+.ct-meta{display:flex;align-items:center;gap:8px;}
+.ct-name{font-size:12px;font-weight:600;color:var(--stone);}
+.ct-status{font-size:9px;color:var(--green);font-weight:500;}
+.ct-x{width:26px;height:26px;border-radius:50%;background:var(--cream2);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.ct-x svg{width:10px;height:10px;stroke:var(--dust);fill:none;stroke-width:2.2;stroke-linecap:round;}
+.chat-host-bar{display:none;flex-shrink:0;background:var(--cream2);border-top:1px solid var(--border);padding:8px 14px;align-items:center;justify-content:space-between;gap:10px;}
+.chat-host-bar.on{display:flex;}
+.chb-txt{font-size:10px;color:var(--stone);line-height:1.4;flex:1;}
+.chb-btn{flex-shrink:0;background:var(--green);color:#fff;border:none;padding:7px 14px;border-radius:2px;font-size:8px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;text-decoration:none;}
+.chb-btn svg{width:10px;height:10px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;}
+.msgs{flex:1;overflow-y:auto;padding:11px 12px 0;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch;}
+.msg{display:flex;gap:6px;align-items:flex-end;max-width:86%;}
+.msg.ai{align-self:flex-start;}.msg.me{align-self:flex-end;flex-direction:row-reverse;}
+.m-av{width:20px;height:20px;border-radius:50%;background:var(--stone);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.m-av svg{width:9px;height:9px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;}
+.bub{padding:9px 13px;font-family:'Cormorant Garamond',serif;font-size:16px;line-height:1.55;color:var(--stone);}
+.msg.ai .bub{background:var(--cream2);border-radius:2px 10px 10px 10px;}
+.msg.me .bub{background:var(--stone);color:var(--white);border-radius:10px 2px 10px 10px;}
+.typing{display:none;gap:4px;padding:9px 13px;background:var(--cream2);border-radius:2px 10px 10px 10px;width:56px;}
+.typing.on{display:flex;}
+.dot{width:4px;height:4px;border-radius:50%;background:var(--dust);animation:bl 1.2s infinite;}
+.dot:nth-child(2){animation-delay:.2s;}.dot:nth-child(3){animation-delay:.4s;}
+@keyframes bl{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-3px)}}
+.sugs{display:flex;gap:5px;padding:7px 12px;overflow-x:auto;flex-shrink:0;scrollbar-width:none;border-top:1px solid var(--border);}
+.sugs::-webkit-scrollbar{display:none;}
+.sug{flex-shrink:0;background:none;border:1px solid var(--border2);color:var(--bark);padding:5px 11px;border-radius:2px;font-size:8px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.ci-row{display:flex;gap:6px;padding:8px 12px 16px;flex-shrink:0;}
+.ci{flex:1;border:1px solid var(--border2);border-radius:2px;padding:9px 12px;font-size:13px;font-family:inherit;background:var(--cream);color:var(--stone);outline:none;}
+.ci:focus{border-color:var(--bark);}.ci::placeholder{color:var(--fog);}
+.cs{width:36px;height:36px;border-radius:2px;background:var(--stone);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.cs svg{width:12px;height:12px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.cs:disabled{opacity:.35;}
+.sh-ov{display:none;position:fixed;inset:0;background:rgba(20,14,6,.4);z-index:230;align-items:flex-end;justify-content:center;}
+.sh-ov.on{display:flex;}
+.sheet{background:var(--white);width:100%;max-width:430px;max-height:88vh;border-radius:14px 14px 0 0;display:flex;flex-direction:column;border-top:1px solid var(--border);}
+.sh-pill{width:26px;height:2px;background:var(--fog);border-radius:2px;margin:10px auto 0;flex-shrink:0;}
+.sh-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.sh-ttl{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--stone);}
+.sh-x{width:26px;height:26px;border-radius:50%;background:var(--cream2);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.sh-x svg{width:10px;height:10px;stroke:var(--dust);fill:none;stroke-width:2.2;stroke-linecap:round;}
+.sh-body{overflow-y:auto;padding:0 18px 40px;flex:1;-webkit-overflow-scrolling:touch;}
+.e-row{padding:11px 0;border-bottom:1px solid var(--border);}.e-row:last-child{border-bottom:none;}
+.ap-sv{width:100%;background:var(--stone);color:var(--white);border:none;padding:12px;font-size:8px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;border-radius:2px;font-weight:600;font-family:inherit;margin-top:6px;}
+.ap-ok{text-align:center;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--green);margin-top:7px;display:none;font-weight:600;}
+.pwd-ov{display:none;position:fixed;inset:0;background:rgba(20,14,6,.55);z-index:240;align-items:center;justify-content:center;padding:20px;}
+.pwd-ov.on{display:flex;}
+.pwd-box{background:var(--white);border-radius:4px;padding:34px 24px;width:100%;max-width:290px;text-align:center;border:1px solid var(--border);}
+.pwd-ttl{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--stone);margin-bottom:3px;}
+.pwd-sub{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:var(--dust);margin-bottom:20px;}
+.pwd-in{width:100%;border:1px solid var(--border2);border-radius:2px;padding:12px;font-size:20px;font-family:'Courier New',monospace;background:var(--cream);color:var(--stone);outline:none;text-align:center;letter-spacing:8px;margin-bottom:10px;}
+.pwd-in:focus{border-color:var(--bark);}
+.pwd-go{width:100%;background:var(--stone);color:var(--white);border:none;padding:12px;font-size:8px;letter-spacing:3px;text-transform:uppercase;border-radius:2px;cursor:pointer;font-weight:600;font-family:inherit;}
+.pwd-err{font-size:10px;color:var(--red);margin-top:8px;display:none;font-weight:500;}
+.pwd-cancel{font-size:8px;color:var(--dust);letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-top:12px;display:inline-block;}
+.toast{position:fixed;bottom:82px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--stone);color:var(--white);padding:8px 18px;border-radius:2px;font-size:8px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;z-index:300;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;display:flex;align-items:center;gap:5px;}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+/* FAQ dans admin */
+.faq-item{background:var(--white);border:1px solid var(--border);border-radius:4px;padding:12px 14px;margin-bottom:8px;}
+.faq-q{font-size:12px;font-weight:600;color:var(--stone);margin-bottom:6px;}
+.faq-count{font-size:9px;color:var(--bark);font-weight:600;letter-spacing:1px;}
+.faq-a{width:100%;border:1px solid var(--border2);border-radius:2px;padding:7px 10px;font-size:12px;font-family:inherit;background:var(--cream);color:var(--stone);outline:none;resize:vertical;min-height:48px;margin-top:6px;}
+.faq-a:focus{border-color:var(--bark);}
+/* RICH TEXT TOOLBAR */
+.rte-wrap{position:relative;margin-top:3px;}
+.rte-bar{display:flex;gap:3px;padding:5px 6px;background:var(--cream3);border:1px solid var(--border2);border-bottom:none;border-radius:2px 2px 0 0;flex-wrap:wrap;align-items:center;}
+.rte-btn{border:1px solid var(--border2);background:var(--white);border-radius:2px;width:28px;height:26px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;color:var(--stone);font-family:inherit;transition:background .12s;padding:0;flex-shrink:0;line-height:1;}
+.rte-btn:active{background:var(--cream2);}
+.rte-sep{width:1px;background:var(--border2);margin:2px 3px;height:18px;align-self:center;}
+.rte-ta{border-radius:0 0 2px 2px!important;margin-top:0!important;}
+</style>
+</head>
+<body>
+
+<div class="load-ov" id="loadOv">
+  <div class="load-logo">The House Station</div>
+  <div class="load-spinner"></div>
+  <div class="load-txt">Chargement...</div>
+</div>
+
+<div class="toast" id="toast">
+  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="t-txt"></span>
+</div>
+
+<!-- Galerie fullscreen -->
+<div class="gallery-full" id="galleryFull">
+  <button class="gallery-close" onclick="closeGalleryFull()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <img id="galleryFullImg" src="" alt="">
+  <div class="gallery-full-cap" id="galleryFullCap"></div>
+  <div class="gallery-nav">
+    <button onclick="galleryNav(-1)">← Préc.</button>
+    <button onclick="galleryNav(1)">Suiv. →</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="sync-bar" id="syncBar"></div>
+
+  <div class="screen active" id="s-home">
+    <div class="admin-bar" id="adminBar">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div class="ab-lbl"><div class="ab-dot-g"></div>Mode admin</div>
+        <select id="propSelect" style="font-size:8px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border2);background:var(--white);color:var(--stone);padding:3px 6px;border-radius:2px;font-family:inherit;cursor:pointer;" onchange="switchProp(this.value)"></select>
+        <button style="font-size:8px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--bark);background:none;color:var(--bark);padding:3px 8px;border-radius:2px;font-family:inherit;cursor:pointer;" onclick="addProp()">+ Logement</button>
+        <button style="font-size:8px;letter-spacing:1px;text-transform:uppercase;border:1px solid rgba(176,80,80,.4);background:none;color:var(--red);padding:3px 8px;border-radius:2px;font-family:inherit;cursor:pointer;" onclick="deleteProp()">✕</button>
+      </div>
+      <div class="ab-btns">
+        <button class="ab-save" onclick="saveAdmin()">Enregistrer</button>
+        <button class="ab-exit" onclick="exitAdmin()">Annuler</button>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="hero-img" id="heroBg"></div>
+      <div class="hero-overlay"></div>
+      <div class="weather-widget" id="weatherWidget"><span class="weather-loading">...</span></div>
+      <div class="hero-content">
+        <div class="av-wrap" onclick="onTap()">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <img id="avImg" src="" alt="">
+        </div>
+        <div class="h-name" id="hName">The House Station</div>
+        <div class="h-sub" id="hSub">Bienvenue chez nous</div>
+        <div class="h-addr"><svg viewBox="0 0 24 24"><path d="M12 21s-8-7.5-8-12a8 8 0 1 1 16 0c0 4.5-8 12-8 12z"/><circle cx="12" cy="9" r="2.5"/></svg><span id="hAddr">123 Rue de la Paix, Paris</span></div>
+      </div>
+    </div>
+
+    <div class="admin-panel" id="adminPanel">
+
+      <!-- SUPABASE -->
+      <div class="ap-sec">
+        <div class="ap-hd">☁️ Synchronisation Supabase</div>
+        <div style="display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--border2);border-radius:4px;padding:12px 14px;margin-bottom:12px;">
+          <div class="cs-dot" id="csDot"></div>
+          <div>
+            <div style="font-size:10px;font-weight:600;color:var(--stone);" id="csTxt">Non configuré</div>
+            <div style="font-size:9px;color:var(--dust);margin-top:1px;" id="csSub">Entrez vos clés Supabase ci-dessous</div>
+          </div>
+        </div>
+        <div class="supa-setup">
+          <div class="supa-step">
+            <div class="supa-step-hd"><div class="supa-num">1</div><div class="supa-step-title">URL du projet Supabase</div></div>
+            <div class="ap-f" style="margin-left:28px;margin-bottom:0;">
+              <input class="ap-in" id="apSupaUrl" placeholder="https://xxxxxxxx.supabase.co" style="font-family:monospace;font-size:11px;">
+            </div>
+          </div>
+          <div class="supa-step">
+            <div class="supa-step-hd"><div class="supa-num">2</div><div class="supa-step-title">Clé publique (publishable key)</div></div>
+            <div class="ap-f" style="margin-left:28px;margin-bottom:0;">
+              <input class="ap-in" id="apSupaKey" placeholder="sb_publishable_..." style="font-family:monospace;font-size:11px;">
+            </div>
+          </div>
+          <div class="supa-step">
+            <div class="supa-step-hd"><div class="supa-num">3</div><div class="supa-step-title">ID logement (unique par fichier HTML)</div></div>
+            <p style="margin-bottom:6px;">Pour le logement 2, mets "prop2", pour le 3 "prop3", etc.</p>
+            <div class="ap-f" style="margin-left:28px;margin-bottom:0;">
+              <input class="ap-in" id="apPropId" placeholder="prop1" style="font-family:monospace;font-size:11px;">
+            </div>
+          </div>
+        </div>
+        <button onclick="testSupabase()" style="display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid var(--bark);color:var(--bark);padding:8px 14px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;border-radius:2px;cursor:pointer;font-family:inherit;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Tester la connexion
+        </button>
+        <div id="supaTestResult" style="display:none;margin-top:8px;font-size:10px;padding:8px 12px;border-radius:2px;"></div>
+      </div>
+
+      <!-- IDENTITÉ -->
+      <div class="ap-sec">
+        <div class="ap-hd">Identité</div>
+        <div class="ap-f"><label>Nom</label><input class="ap-in" id="apName"></div>
+        <div class="ap-f"><label>Sous-titre</label><input class="ap-in" id="apSub"></div>
+        <div class="ap-f"><label>Adresse</label><input class="ap-in" id="apAddr"></div>
+        <div class="ap-f">
+          <label>Photo de profil</label>
+          <div class="ap-img-row">
+            <img class="ap-preview" id="prevAv" src="" alt="">
+            <button class="ap-fb" onclick="document.getElementById('inpAv').click()">Choisir</button>
+            <button class="ap-del" id="delAv" onclick="deleteImg('av')">Supprimer</button>
+            <input type="file" id="inpAv" accept="image/*" style="display:none" onchange="stageImg(this,'av')">
+          </div>
+        </div>
+        <div class="ap-f">
+          <label>Photo de fond</label>
+          <div class="ap-img-row">
+            <img class="ap-preview-bg" id="prevBg" src="" alt="">
+            <button class="ap-fb" onclick="document.getElementById('inpBg').click()">Choisir</button>
+            <button class="ap-del" id="delBg" onclick="deleteImg('bg')">Supprimer</button>
+            <input type="file" id="inpBg" accept="image/*" style="display:none" onchange="stageImg(this,'bg')">
+          </div>
+        </div>
+        <div class="ap-f"><label>Contexte IA libre</label><textarea class="ap-ta" id="apCtx" placeholder="Infos supplémentaires pour l'IA…"></textarea></div>
+        <div class="ap-f">
+          <label>🌿 Mode saisonnier</label>
+          <select class="ap-in" id="apSaison" onchange="applySaison(this.value)">
+            <option value="">— Aucun —</option>
+            <option value="ete">☀️ Été</option>
+            <option value="automne">🍂 Automne</option>
+            <option value="hiver">❄️ Hiver</option>
+            <option value="printemps">🌸 Printemps</option>
+          </select>
+        </div>
+        <div class="ap-f"><label>Message saisonnier</label><input class="ap-in" id="apSaisonMsg" placeholder="Ex: Profitez de la piscine !"></div>
+      </div>
+
+      <!-- HISTOIRE -->
+      <div class="ap-sec">
+        <div class="ap-hd">📖 Histoire du logement</div>
+        <div class="ap-f"><label>Titre</label><input class="ap-in" id="apHistoireTitre" placeholder="Ex: L'histoire du Gîte Mana"></div>
+        <div class="ap-f"><label>Année / Date (optionnel)</label><input class="ap-in" id="apHistoireDate" placeholder="Ex: Fondé en 1920"></div>
+        <div class="ap-f"><label>Texte de l'histoire</label><textarea class="ap-ta" id="apHistoireTxt" style="min-height:120px;" placeholder="Racontez l'histoire de votre gîte…"></textarea></div>
+        <div class="ap-f"><label>Citation / Extrait (optionnel)</label><textarea class="ap-ta" id="apHistoireQuote" placeholder="Ex: &quot;Ce lieu existe depuis…&quot;"></textarea></div>
+        <div class="ap-f">
+          <label>Photo d'illustration</label>
+          <div class="ap-img-row">
+            <img class="ap-preview-bg" id="prevHistoire" src="" alt="" style="width:80px;height:50px;">
+            <button class="ap-fb" onclick="document.getElementById('inpHistoire').click()">Choisir</button>
+            <button class="ap-del" id="delHistoire" onclick="deleteImg('histoire')">Supprimer</button>
+            <input type="file" id="inpHistoire" accept="image/*" style="display:none" onchange="stageImg(this,'histoire')">
+          </div>
+        </div>
+      </div>
+
+      <!-- MANUEL ÉQUIPEMENTS -->
+      <div class="ap-sec">
+        <div class="ap-hd">🔧 Manuel des équipements</div>
+        <p style="font-size:10px;color:var(--dust);margin-bottom:12px;line-height:1.5;">Expliquez comment utiliser chaque appareil. Les voyageurs pourront consulter ces fiches depuis l'onglet Manuel.</p>
+        <div id="manuelAdminList"></div>
+        <button class="ap-fb" style="width:100%;padding:10px;font-size:9px;letter-spacing:2px;margin-top:6px;" onclick="addManuelItem()">+ Ajouter un appareil</button>
+        <button class="ap-sv" style="margin-top:8px;" onclick="saveManuel()">Enregistrer le manuel</button>
+        <div class="ap-ok" id="manuelOk">Manuel enregistré</div>
+      </div>
+
+      <!-- GALERIE -->
+      <div class="ap-sec">
+        <div class="ap-hd">🖼 Galerie photos</div>
+        <p style="font-size:10px;color:var(--dust);margin-bottom:12px;line-height:1.5;">Ajoutez des photos du gîte et de la région. Chaque photo peut avoir une légende.</p>
+        <div id="galleryAdminList"></div>
+        <button class="ap-fb" style="width:100%;padding:10px;font-size:9px;letter-spacing:2px;margin-top:6px;" onclick="addGalleryItem()">+ Ajouter une photo</button>
+        <button class="ap-sv" style="margin-top:8px;" onclick="saveGallery()">Enregistrer la galerie</button>
+        <div class="ap-ok" id="galleryOk">Galerie enregistrée</div>
+      </div>
+
+      <!-- CONTACT HÔTE -->
+      <div class="ap-sec">
+        <div class="ap-hd">📞 Contact hôte (chatbot)</div>
+        <div class="ap-f"><label>Nom de l'hôte</label><input class="ap-in" id="apHostName" placeholder="Ex: Marie…"></div>
+        <div class="ap-f"><label>Numéro de téléphone</label><input class="ap-in" id="apHostPhone" type="tel" placeholder="+33 6 12 34 56 78"></div>
+        <div class="ap-f"><label>Message personnalisé</label><input class="ap-in" id="apHostMsg" placeholder="Ex: Disponible de 9h à 20h"></div>
+      </div>
+
+      <!-- MÉMOIRE CHATBOT -->
+      <div class="ap-sec">
+        <div class="ap-hd">🤖 Mémoire du chatbot</div>
+        <div class="ap-f"><label>🍽 Vaisselle</label><textarea class="ap-ta" id="memVaisselle"></textarea></div>
+        <div class="ap-f"><label>🍳 Ustensiles cuisine</label><textarea class="ap-ta" id="memCuisine"></textarea></div>
+        <div class="ap-f"><label>🚿 Salle de bain</label><textarea class="ap-ta" id="memSdb"></textarea></div>
+        <div class="ap-f"><label>⚡ Électroménager</label><textarea class="ap-ta" id="memElectro"></textarea></div>
+        <div class="ap-f"><label>🛏 Literie</label><textarea class="ap-ta" id="memLiterie"></textarea></div>
+        <div class="ap-f"><label>🧹 Divers</label><textarea class="ap-ta" id="memDivers"></textarea></div>
+        <div class="ap-f"><label>📝 Notes supplémentaires</label><textarea class="ap-ta" id="memSup"></textarea></div>
+      </div>
+
+      <!-- FAQ CHATBOT -->
+      <div class="ap-sec">
+        <div class="ap-hd">💬 Questions fréquentes du chatbot</div>
+        <p style="font-size:10px;color:var(--dust);margin-bottom:12px;line-height:1.5;">Questions posées par vos voyageurs. Ajoutez une réponse précise pour améliorer le bot.</p>
+        <div id="faqPanel"><div style="font-size:11px;color:var(--fog);text-align:center;padding:16px;">Aucune question enregistrée</div></div>
+        <button class="ap-sv" style="margin-top:4px;" onclick="saveFaqAnswers()">Enregistrer les réponses</button>
+      </div>
+
+      <!-- STATS -->
+      <div class="ap-sec">
+        <div class="ap-hd">📊 Statistiques</div>
+        <div id="statsPanel"></div>
+      </div>
+
+      <!-- MOT DE PASSE -->
+      <div class="ap-sec">
+        <div class="ap-hd">Mot de passe admin</div>
+        <div class="ap-f"><label>Nouveau mot de passe</label><input class="ap-in" id="apPwd" type="password" placeholder="Vide = conserver l'actuel"></div>
+        <div class="ap-f"><label>Confirmer</label><input class="ap-in" id="apPwd2" type="password"></div>
+      </div>
+      <div style="height:8px"></div>
+    </div>
+
+    <div class="lang-bar">
+      <button class="flag-btn on" onclick="setLang('fr',this)">🇫🇷</button>
+      <button class="flag-btn" onclick="setLang('en',this)">🇬🇧</button>
+      <button class="flag-btn" onclick="setLang('es',this)">🇪🇸</button>
+      <button class="flag-btn" onclick="setLang('de',this)">🇩🇪</button>
+      <button class="flag-btn" onclick="setLang('it',this)">🇮🇹</button>
+      <button class="flag-btn" onclick="setLang('nl',this)">🇳🇱</button>
+    </div>
+
+    <div id="saisonBanner" style="display:none;background:var(--bark);color:#fff;text-align:center;padding:9px 16px;font-size:11px;letter-spacing:.5px;"></div>
+    <div class="sec-lbl"><div class="sec-line"></div><div class="sec-txt" id="secLbl">Votre guide</div><div class="sec-line"></div></div>
+
+    <div id="mainGrid">
+      <div class="cat-sep"><div class="cat-sep-line"></div><div class="cat-sep-txt" id="catPratique">Logement</div><div class="cat-sep-line"></div></div>
+      <div class="tile-pair">
+        <div class="tile" onclick="openPage('wifi')"><div class="e-dot" onclick="event.stopPropagation();openEdit('wifi')">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><path d="M5 12.5C7.8 9.7 10.2 8.5 12 8.5s4.2 1.2 7 4"/><path d="M1.5 8.5C5.3 4.8 8.9 3 12 3s6.7 1.8 10.5 5.5"/><path d="M8.5 16.5C9.8 15.2 11 14.5 12 14.5s2.2.7 3.5 2"/><circle cx="12" cy="20" r="1" fill="currentColor" stroke="none"/></svg></div><div class="tile-lbl" id="l_wifi">Wi-Fi</div></div>
+        <div class="tile" onclick="openPage('arrivee')"><div class="e-dot" onclick="event.stopPropagation();openEdit('arrivee')">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><path d="M15 3H19a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H15"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></div><div class="tile-lbl" id="l_arrivee">Infos arrivée</div></div>
+      </div>
+      <div class="tile-pair">
+        <div class="tile" onclick="openPage('depart')"><div class="e-dot" onclick="event.stopPropagation();openEdit('depart')">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div><div class="tile-lbl" id="l_depart">Infos départ</div></div>
+        <div class="tile" onclick="openPage('parking')"><div class="e-dot" onclick="event.stopPropagation();openEdit('parking')">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/></svg></div><div class="tile-lbl" id="l_parking">Parking</div></div>
+      </div>
+      <div class="tile-pair">
+        <div class="tile" onclick="openPage('poubelles')"><div class="e-dot" onclick="event.stopPropagation();openEdit('poubelles')">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></div><div class="tile-lbl" id="l_poubelles">Poubelles</div></div>
+        <div class="tile" onclick="openPage('reglement')"><div class="e-dot" onclick="event.stopPropagation();openEdit('reglement')">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg></div><div class="tile-lbl" id="l_reglement">Règlement</div></div>
+      </div>
+      <div class="tile-pair">
+        <div class="tile" onclick="openPage('manuel')"><div class="e-dot" onclick="event.stopPropagation();openEditManuel()">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div><div class="tile-lbl" id="l_manuel">Manuel</div></div>
+        <div class="tile tile-ghost"></div>
+      </div>
+
+      <div class="cat-sep" style="margin-top:6px;"><div class="cat-sep-line"></div><div class="cat-sep-txt" id="catDecouverte">Découverte</div><div class="cat-sep-line"></div></div>
+      <div class="tile-pair">
+        <div class="tile" onclick="openPage('restaurants')"><div class="e-dot" onclick="event.stopPropagation();openEdit('restaurants')">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6h3l-1 11"/></svg></div><div class="tile-lbl" id="l_restaurants">Restaurants</div></div>
+        <div class="tile" onclick="openPage('bars')"><div class="e-dot" onclick="event.stopPropagation();openEdit('bars')">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg></div><div class="tile-lbl" id="l_bars">Bars &amp; Cafés</div></div>
+      </div>
+      <div class="tile-pair">
+        <div class="tile" onclick="openPage('activites')"><div class="e-dot" onclick="event.stopPropagation();openEdit('activites')">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><path d="M12 22s-8-5.5-8-11a8 8 0 1 1 16 0c0 5.5-8 11-8 11z"/><circle cx="12" cy="11" r="3"/></svg></div><div class="tile-lbl" id="l_activites">Activités</div></div>
+        <div class="tile" onclick="openPage('epiceries')"><div class="e-dot" onclick="event.stopPropagation();openEdit('epiceries')">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></div><div class="tile-lbl" id="l_epiceries">Supermarché</div></div>
+      </div>
+      <div class="tile-pair">
+        <div class="tile" onclick="openPage('services')"><div class="e-dot" onclick="event.stopPropagation();openEdit('services')">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div class="tile-lbl" id="l_services">Services</div></div>
+        <div class="tile" onclick="openPage('galerie')"><div class="e-dot" onclick="event.stopPropagation();openEditGalerie()">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div><div class="tile-lbl" id="l_galerie">Galerie</div></div>
+      </div>
+
+      <div class="cat-sep" style="margin-top:6px;"><div class="cat-sep-line"></div><div class="cat-sep-txt" id="catInfos">Infos utiles</div><div class="cat-sep-line"></div></div>
+      <div class="tile-pair">
+        <div class="tile" onclick="openPage('acces')"><div class="e-dot" onclick="event.stopPropagation();openEdit('acces')">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></div><div class="tile-lbl" id="l_acces">Codes d'accès</div></div>
+        <div class="tile" onclick="openPage('numeros')"><div class="e-dot" onclick="event.stopPropagation();openEdit('numeros')">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg></div><div class="tile-lbl" id="l_numeros">Numéros utiles</div></div>
+      </div>
+      <div class="tile-pair">
+        <div class="tile" onclick="openPage('inventaire')"><div class="e-dot" onclick="event.stopPropagation();openEdit('inventaire')">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><path d="M20 9V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v2"/><path d="M2 11v5a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H6v-2a2 2 0 0 0-4 0z"/><line x1="4" y1="18" x2="4" y2="22"/><line x1="20" y1="18" x2="20" y2="22"/></svg></div><div class="tile-lbl" id="l_inventaire">Équipements</div></div>
+        <div class="tile" onclick="openPage('avis')"><div class="e-dot" onclick="event.stopPropagation();openEditAvis()">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3 12 2"/></svg></div><div class="tile-lbl" id="l_avis">Avis</div></div>
+      </div>
+    </div>
+
+    <div class="footer"><div class="footer-line"></div><div class="footer-txt" id="footerTxt">Merci pour votre séjour</div></div>
+  </div>
+
+  <div class="screen" id="s-page">
+    <div class="page-top">
+      <button class="bk-btn" onclick="closePage()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <span class="page-ttl" id="pageTitle"></span>
+    </div>
+    <div id="pageContent"></div>
+  </div>
+</div>
+
+<button class="fab" onclick="toggleChat()">
+  <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+  <div class="fab-dot on" id="fabDot"></div>
+</button>
+
+<div class="chat-ov" id="chatOv" onclick="toggleChat()"></div>
+<div class="chat-panel" id="chatPanel">
+  <div class="ct-top">
+    <div class="ct-pill"></div>
+    <div class="ct-row">
+      <div class="ct-meta">
+        <div class="ct-av"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg></div>
+        <div><div class="ct-name" id="chatName">Assistant</div><div class="ct-status" id="chatStatus">En ligne</div></div>
+      </div>
+      <button class="ct-x" onclick="toggleChat()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+  </div>
+  <div class="msgs" id="msgs">
+    <div class="msg ai"><div class="m-av"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg></div><div class="bub" id="chatWelcome">Bonjour — je suis votre assistant pour ce séjour.</div></div>
+    <div class="typing" id="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  </div>
+  <div class="sugs" id="sugsBar">
+    <button class="sug" id="sug1" onclick="sendSug(this)">Heure d'arrivée ?</button>
+    <button class="sug" id="sug2" onclick="sendSug(this)">Mot de passe Wi-Fi ?</button>
+    <button class="sug" id="sug3" onclick="sendSug(this)">Que faire autour ?</button>
+  </div>
+  <div class="chat-host-bar" id="chatHostBar">
+    <div class="chb-txt" id="chbTxt">Pour plus d'aide, contactez votre hôte</div>
+    <a class="chb-btn" id="chbBtn" href="#">
+      <svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
+      Appeler
+    </a>
+  </div>
+  <div class="ci-row">
+    <input class="ci" id="ci" placeholder="Votre question…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}">
+    <button class="cs" id="csBtn" onclick="sendMsg()"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+  </div>
+</div>
+
+<div class="sh-ov" id="shOv" onclick="if(event.target===this)closeEdit()">
+  <div class="sheet">
+    <div class="sh-pill"></div>
+    <div class="sh-hd"><span class="sh-ttl" id="editTitle">Modifier</span><button class="sh-x" onclick="closeEdit()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="sh-body" id="editBody"></div>
+  </div>
+</div>
+
+<div class="pwd-ov" id="pwdOv">
+  <div class="pwd-box">
+    <div class="pwd-ttl">Administration</div>
+    <div class="pwd-sub">Mot de passe</div>
+    <input class="pwd-in" type="password" id="pwdIn" placeholder="••••" onkeydown="if(event.key==='Enter')checkPwd()">
+    <button class="pwd-go" onclick="checkPwd()">Entrer</button>
+    <div class="pwd-err" id="pwdErr">Mot de passe incorrect</div>
+    <div class="pwd-cancel" onclick="closePwd()">Annuler</div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONFIG SUPABASE — clés stockées en localStorage
+// ═══════════════════════════════════════════════
+var SUPA_URL_KEY='ths_supa_url';
+var SUPA_KEY_KEY='ths_supa_key';
+var PROP_ID_KEY='ths_prop_id';
+// ID logement hardcodé dans ce fichier HTML — changez pour chaque logement
+var HARDCODED_PROP_ID='prop1';
+
+function getSupaUrl(){return localStorage.getItem(SUPA_URL_KEY)||'';}
+function getSupaKey(){return localStorage.getItem(SUPA_KEY_KEY)||'';}
+function getPropId(){return localStorage.getItem(PROP_ID_KEY)||HARDCODED_PROP_ID;}
+
+async function supaFetch(path,method,body){
+  var url=getSupaUrl();var key=getSupaKey();
+  if(!url||!key)return null;
+  try{
+    var opts={method:method||'GET',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key,'Prefer':'return=representation'}};
+    if(body)opts.body=JSON.stringify(body);
+    var r=await fetch(url+'/rest/v1/'+path,opts);
+    if(!r.ok){var t=await r.text();console.error('Supabase error:',r.status,t);return null;}
+    var txt=await r.text();return txt?JSON.parse(txt):null;
+  }catch(e){console.error('Supabase fetch error:',e);return null;}
+}
+
+async function cloudLoad(){
+  var pid=getPropId();
+  var data=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data');
+  if(data&&data.length>0){cloudReady=true;return data[0].data;}
+  cloudReady=false;return null;
+}
+
+async function cloudSave(propData){
+  var pid=getPropId();
+  // Upsert
+  var r=await supaFetch('properties','POST',{id:pid,data:propData,updated_at:new Date().toISOString()});
+  if(r!==null){cloudReady=true;return true;}
+  // Try PUT update
+  var r2=await supaFetch('properties?id=eq.'+encodeURIComponent(pid),'PATCH',{data:propData,updated_at:new Date().toISOString()});
+  cloudReady=r2!==null;
+  return cloudReady;
+}
+
+// Upsert avec header correct
+async function cloudSaveUpsert(propData){
+  var pid=getPropId();
+  var url=getSupaUrl();var key=getSupaKey();
+  if(!url||!key)return false;
+  try{
+    var r=await fetch(url+'/rest/v1/properties',{method:'POST',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify({id:pid,data:propData,updated_at:new Date().toISOString()})});
+    cloudReady=r.ok;
+    return r.ok;
+  }catch(e){cloudReady=false;return false;}
+}
+
+async function testSupabase(){
+  var url=document.getElementById('apSupaUrl').value.trim();
+  var key=document.getElementById('apSupaKey').value.trim();
+  var pid=document.getElementById('apPropId').value.trim()||HARDCODED_PROP_ID;
+  var res=document.getElementById('supaTestResult');
+  if(!url||!key){res.style.display='block';res.style.background='rgba(176,80,80,0.1)';res.style.color='var(--red)';res.textContent='⚠️ Entrez l\'URL et la clé Supabase.';return;}
+  res.style.display='block';res.style.background='rgba(155,126,96,0.1)';res.style.color='var(--bark)';res.textContent='Test en cours…';
+  try{
+    var r=await fetch(url+'/rest/v1/properties?limit=1',{headers:{'apikey':key,'Authorization':'Bearer '+key}});
+    if(r.ok||r.status===200){
+      localStorage.setItem(SUPA_URL_KEY,url);localStorage.setItem(SUPA_KEY_KEY,key);localStorage.setItem(PROP_ID_KEY,pid);
+      cloudReady=true;updateCloudStatusUI();
+      res.style.background='rgba(90,138,106,0.1)';res.style.color='var(--green)';
+      res.textContent='✓ Connexion réussie ! Clés enregistrées. Prop ID: '+pid;
+    } else {
+      res.style.background='rgba(176,80,80,0.1)';res.style.color='var(--red)';
+      res.textContent='✕ Erreur '+r.status+'. Vérifiez votre URL et clé.';
+    }
+  }catch(e){
+    res.style.background='rgba(176,80,80,0.1)';res.style.color='var(--red)';
+    res.textContent='✕ Connexion impossible. Vérifiez l\'URL Supabase.';
+  }
+}
+
+var cloudReady=false;
+
+function updateCloudStatusUI(){
+  var dot=document.getElementById('csDot');var txt=document.getElementById('csTxt');var sub=document.getElementById('csSub');
+  if(!dot)return;
+  if(cloudReady){
+    dot.className='cs-dot ok';txt.textContent='✓ Connecté à Supabase';sub.textContent='Prop ID : '+getPropId();
+  } else if(getSupaUrl()){
+    dot.className='cs-dot err';txt.textContent='⚠️ Erreur de connexion';sub.textContent='Vérifiez vos clés';
+  } else {
+    dot.className='cs-dot';txt.textContent='Non configuré';sub.textContent='Entrez vos clés Supabase ci-dessous';
+  }
+}
+
+function showSyncBar(msg,warn){
+  var b=document.getElementById('syncBar');b.textContent=msg;
+  b.className='sync-bar show'+(warn?' warn':'');
+  clearTimeout(b._t);b._t=setTimeout(function(){b.classList.remove('show');},3000);
+}
+
+// ═══════════════════════════════════════════════
+// QUESTIONS CHATBOT — Supabase
+// ═══════════════════════════════════════════════
+async function saveChatQuestion(question){
+  var pid=getPropId();
+  var url=getSupaUrl();var key=getSupaKey();
+  if(!url||!key)return;
+  try{
+    // Check if question exists
+    var r=await fetch(url+'/rest/v1/chat_questions?property_id=eq.'+encodeURIComponent(pid)+'&question=eq.'+encodeURIComponent(question),{headers:{'apikey':key,'Authorization':'Bearer '+key}});
+    var existing=await r.json();
+    if(existing&&existing.length>0){
+      // Increment count
+      await fetch(url+'/rest/v1/chat_questions?id=eq.'+existing[0].id,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key},body:JSON.stringify({count:existing[0].count+1})});
+    } else {
+      // Insert new
+      await fetch(url+'/rest/v1/chat_questions',{method:'POST',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key},body:JSON.stringify({property_id:pid,question:question,count:1})});
+    }
+  }catch(e){console.log('chat question save error:',e);}
+}
+
+async function loadChatQuestions(){
+  var pid=getPropId();
+  var data=await supaFetch('chat_questions?property_id=eq.'+encodeURIComponent(pid)+'&order=count.desc&limit=30');
+  return data||[];
+}
+
+async function saveFaqAnswers(){
+  var url=getSupaUrl();var key=getSupaKey();
+  if(!url||!key){showToast('Supabase non configuré');return;}
+  var items=document.querySelectorAll('[data-faq-id]');
+  for(var el of items){
+    var id=el.getAttribute('data-faq-id');
+    var ans=el.value.trim();
+    await fetch(url+'/rest/v1/chat_questions?id=eq.'+id,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key},body:JSON.stringify({answer:ans})});
+  }
+  showToast('Réponses enregistrées ✓');
+}
+
+async function buildFaqPanel(){
+  var panel=document.getElementById('faqPanel');
+  var questions=await loadChatQuestions();
+  if(!questions.length){panel.innerHTML='<div style="font-size:11px;color:var(--fog);text-align:center;padding:16px;">Aucune question pour l\'instant</div>';return;}
+  var h='';
+  questions.forEach(function(q){
+    h+='<div class="faq-item"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;"><div class="faq-q">'+esc(q.question)+'</div><div class="faq-count">'+q.count+'×</div></div>';
+    h+='<textarea class="faq-a" data-faq-id="'+q.id+'" placeholder="Réponse personnalisée (améliore le bot)…">'+esc(q.answer||'')+'</textarea>';
+    h+='</div>';
+  });
+  panel.innerHTML=h;
+}
+
+
+// ═══════════════════════════════════════════════
+// MANUEL ÉQUIPEMENTS
+// ═══════════════════════════════════════════════
+var MANUEL_ICONS={
+  four:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><rect x="7" y="8" width="10" height="7" rx="1"/><circle cx="7.5" cy="6" r="0.8" fill="currentColor" stroke="none"/><circle cx="12" cy="6" r="0.8" fill="currentColor" stroke="none"/><circle cx="16.5" cy="6" r="0.8" fill="currentColor" stroke="none"/></svg>',
+  microonde:'<svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><rect x="5" y="8" width="10" height="8" rx="1"/><circle cx="19" cy="10" r="0.8" fill="currentColor" stroke="none"/><circle cx="19" cy="13" r="0.8" fill="currentColor" stroke="none"/></svg>',
+  machine:'<svg viewBox="0 0 24 24"><rect x="3" y="2" width="18" height="20" rx="2"/><circle cx="12" cy="13" r="5"/><circle cx="12" cy="13" r="3"/><line x1="7" y1="6" x2="9" y2="6"/><circle cx="12" cy="6" r="0.8" fill="currentColor" stroke="none"/></svg>',
+  tineco:'<svg viewBox="0 0 24 24"><path d="M3 21l10-10"/><path d="M9.5 14.5L5 19"/><path d="M13 11l6-9"/><path d="M13 11l2-1"/><circle cx="18" cy="3" r="1.5"/></svg>',
+  tele:'<svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 20h8"/><path d="M12 18v2"/></svg>',
+  climatisation:'<svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="9" rx="2"/><path d="M6 19l2-2"/><path d="M12 19v-2"/><path d="M18 19l-2-2"/><path d="M9 14v1"/><path d="M12 14v1"/><path d="M15 14v1"/></svg>',
+  chauffe:'<svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 1 5 5c0 3-2 4-2 7a5 5 0 0 1-10 0c0-3-2-4-2-7a5 5 0 0 1 5-5z" stroke-linejoin="round"/><path d="M10 17h4"/></svg>',
+  barbecue:'<svg viewBox="0 0 24 24"><path d="M4 11h16"/><path d="M4 11l2 8h12l2-8"/><path d="M12 19v3"/><path d="M8 22h8"/><path d="M8 4c0 2 2 2 2 4"/><path d="M12 4c0 2 2 2 2 4"/><path d="M10 3c0-1 1-1 1-2"/></svg>',
+  autre:'<svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
+};
+
+function renderManuelAdminList(){
+  var list=document.getElementById('manuelAdminList');if(!list)return;
+  var items=S.manuel||[];
+  var ICON_LABELS={four:'Four',microonde:'Micro-ondes',machine:'Lave-linge',tineco:'Tineco / Balai',tele:'Télévision',climatisation:'Climatisation',chauffe:'Chauffe-eau',barbecue:'Barbecue',autre:'Autre'};
+  var mImgSvg='<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--fog);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+  var h='';
+  items.forEach(function(item,i){
+    // Migrate legacy string steps to array
+    if(typeof item.steps==='string'){
+      item.steps=item.steps.split('\n').filter(Boolean).map(function(t){return {text:t.replace(/^\d+\.\s*/,''),img:''};});
+    }
+    if(!Array.isArray(item.steps))item.steps=[];
+    h+='<div style="background:var(--white);border:1px solid var(--border);border-radius:4px;padding:12px;margin-bottom:8px;">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
+    h+='<span style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--bark);">Appareil '+(i+1)+'</span>';
+    h+='<span style="font-size:10px;color:var(--red);cursor:pointer;padding:3px 8px;border:1px solid rgba(176,80,80,.3);border-radius:2px;" onclick="removeManuelItem('+i+')">Supprimer</span>';
+    h+='</div>';
+    h+='<div class="ap-f"><label>Nom de l\'appareil</label><input class="ap-in" id="mnom'+i+'" value="'+esc(item.nom||'')+'" placeholder="Ex: Four, Machine à laver, Tineco…"></div>';
+    h+='<div class="ap-f"><label>Icône</label><select class="ap-in" id="mico'+i+'">';
+    Object.keys(MANUEL_ICONS).forEach(function(k){h+='<option value="'+k+'"'+(item.ico===k?' selected':'')+'>'+(ICON_LABELS[k]||k)+'</option>';});
+    h+='</select></div>';
+    // Steps
+    h+='<div class="ap-f"><label>Étapes</label><div id="mstepslist'+i+'">';
+    item.steps.forEach(function(step,si){
+      h+=renderManuelStepForm(i,si,step);
+    });
+    h+='</div>';
+    h+='<button class="ap-fb" style="width:100%;margin-top:6px;padding:8px;font-size:8px;letter-spacing:1.5px;" onclick="addManuelStep('+i+')">+ Ajouter une étape</button>';
+    h+='</div>';
+    h+='<div class="ap-f"><label>Notes importantes (optionnel)</label><input class="ap-in" id="mnotes'+i+'" value="'+esc(item.notes||'')+'" placeholder="Ex: Ne jamais mettre métal, dégivrer chaque mois…"></div>';
+    h+='</div>';
+  });
+  list.innerHTML=h;
+}
+
+function renderManuelStepForm(i,si,step){
+  var mImgSvg='<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--fog);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+  var h='<div id="mstep'+i+'_'+si+'" style="border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:6px;background:var(--cream);">';
+  h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">';
+  h+='<div style="width:20px;height:20px;border-radius:50%;background:var(--bark);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(si+1)+'</div>';
+  h+='<input class="ap-in" id="mstxt'+i+'_'+si+'" value="'+esc(step.text||'')+'" placeholder="Description de l\'étape…" style="flex:1;">';
+  h+='<span style="font-size:10px;color:var(--red);cursor:pointer;padding:3px 7px;border:1px solid rgba(176,80,80,.3);border-radius:2px;flex-shrink:0;" onclick="removeManuelStep('+i+','+si+')">✕</span>';
+  h+='</div>';
+  // Step image
+  h+='<div style="display:flex;align-items:center;gap:8px;">';
+  if(step.img){
+    h+='<img src="'+step.img+'" style="width:56px;height:42px;object-fit:cover;border-radius:3px;border:1px solid var(--border);flex-shrink:0;">';
+    h+='<div style="display:flex;flex-direction:column;gap:4px;">';
+    h+='<button class="ap-fb" style="font-size:8px;" onclick="pickStepImg('+i+','+si+')">Changer</button>';
+    h+='<button style="font-size:8px;letter-spacing:1px;text-transform:uppercase;border:1px solid rgba(176,80,80,.3);background:none;color:var(--red);padding:4px 8px;border-radius:2px;cursor:pointer;font-family:inherit;" onclick="delStepImg('+i+','+si+')">Supprimer</button>';
+    h+='</div>';
+  } else {
+    h+='<div style="width:56px;height:42px;background:var(--cream2);border:1px solid var(--border);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">'+mImgSvg+'</div>';
+    h+='<button class="ap-fb" style="font-size:8px;" onclick="pickStepImg('+i+','+si+')">+ Photo</button>';
+  }
+  h+='<input type="file" id="sinp'+i+'_'+si+'" accept="image/*" style="display:none" onchange="onStepImgPick(this,'+i+','+si+')">';
+  h+='</div>';
+  h+='</div>';
+  return h;
+}
+
+function pickManuelImg(i){document.getElementById('minp'+i).click();}
+function onManuelImgPick(inp,i){
+  var f=inp.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(e){if(!S.manuel[i])return;S.manuel[i].img=e.target.result;renderManuelAdminList();};
+  r.readAsDataURL(f);
+}
+function delManuelImg(i){if(!S.manuel[i])return;S.manuel[i].img='';renderManuelAdminList();}
+
+function pickStepImg(i,si){document.getElementById('sinp'+i+'_'+si).click();}
+function onStepImgPick(inp,i,si){
+  var f=inp.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(e){
+    if(!S.manuel[i]||!S.manuel[i].steps[si])return;
+    S.manuel[i].steps[si].img=e.target.result;
+    renderManuelAdminList();
+  };
+  r.readAsDataURL(f);
+}
+function delStepImg(i,si){if(!S.manuel[i]||!S.manuel[i].steps[si])return;S.manuel[i].steps[si].img='';renderManuelAdminList();}
+
+function addManuelStep(i){
+  collectManuelFields();
+  if(!S.manuel[i].steps)S.manuel[i].steps=[];
+  S.manuel[i].steps.push({text:'',img:''});
+  renderManuelAdminList();
+}
+function removeManuelStep(i,si){
+  collectManuelFields();
+  S.manuel[i].steps.splice(si,1);
+  renderManuelAdminList();
+}
+function collectManuelFields(){
+  var items=S.manuel||[];
+  items.forEach(function(item,i){
+    var n=document.getElementById('mnom'+i);var ic=document.getElementById('mico'+i);var no=document.getElementById('mnotes'+i);
+    if(n)item.nom=n.value;if(ic)item.ico=ic.value;if(no)item.notes=no.value;
+    if(Array.isArray(item.steps)){
+      item.steps.forEach(function(step,si){
+        var t=document.getElementById('mstxt'+i+'_'+si);
+        if(t)step.text=t.value;
+      });
+    }
+  });
+}
+function addManuelItem(){
+  if(!S.manuel)S.manuel=[];
+  S.manuel.push({nom:'',ico:'autre',steps:[],notes:'',img:''});
+  renderManuelAdminList();
+}
+function removeManuelItem(i){
+  collectManuelFields();
+  S.manuel.splice(i,1);
+  renderManuelAdminList();
+}
+async function saveManuel(){
+  collectManuelFields();
+  S.manuel=S.manuel.filter(function(x){return x.nom;});
+  await save();
+  var ok=document.getElementById('manuelOk');ok.style.display='block';
+  setTimeout(function(){ok.style.display='none';},2200);
+}
+function openEditManuel(){
+  renderManuelAdminList();
+  document.getElementById('adminPanel').scrollIntoView({behavior:'smooth'});
+}
+function manuelIcoSvg(key){
+  var svg=MANUEL_ICONS[key]||MANUEL_ICONS['autre'];
+  return svg.replace('<svg ','<svg style="width:24px;height:24px;stroke:var(--bark);fill:none;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;" ');
+}
+function buildManuelPage(){
+  var items=S.manuel||[];
+  if(!items.length){
+    return '<div style="padding:40px 20px;text-align:center;color:var(--dust);font-size:12px;line-height:1.8;"><div style="margin-bottom:16px;display:flex;justify-content:center;"><svg viewBox="0 0 24 24" style="width:40px;height:40px;stroke:var(--fog);fill:none;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div><div>Aucun équipement décrit pour l\'instant.</div><div style="font-size:10px;color:var(--fog);margin-top:6px;">L\'hôte ajoutera les instructions des appareils.</div></div>';
+  }
+  var h='<div class="page-body">';
+  items.forEach(function(item){
+    // Migrate legacy string
+    if(typeof item.steps==='string'){
+      item.steps=item.steps.split('\n').filter(Boolean).map(function(t){return {text:t.replace(/^\d+\.\s*/,''),img:''};});
+    }
+    if(!Array.isArray(item.steps))item.steps=[];
+    h+='<div style="background:var(--white);border-radius:4px;padding:16px;margin-bottom:10px;border:1px solid var(--border);">';
+    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);">';
+    h+='<div style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--cream2);border-radius:8px;border:1px solid var(--border);">'+manuelIcoSvg(item.ico)+'</div>';
+    h+='<div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:var(--stone);">'+esc(item.nom)+'</div>';
+    h+='</div>';
+    if(item.img){
+      h+='<img src="'+item.img+'" style="width:100%;max-height:200px;object-fit:cover;border-radius:4px;margin-bottom:12px;display:block;">';
+    }
+    if(item.steps.length){
+      h+='<div style="margin-bottom:10px;">';
+      item.steps.forEach(function(step,si){
+        h+='<div style="padding:10px 0;border-bottom:1px solid var(--border);">';
+        h+='<div style="display:flex;gap:10px;align-items:flex-start;">';
+        h+='<div style="width:22px;height:22px;border-radius:50%;background:var(--bark);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">'+(si+1)+'</div>';
+        h+='<div style="flex:1;">';
+        h+='<div style="font-size:14px;color:var(--stone);line-height:1.5;margin-bottom:'+(step.img?'8px':'0')+';">'+richVal(step.text||'')+'</div>';
+        if(step.img){
+          h+='<img src="'+step.img+'" style="width:100%;max-height:180px;object-fit:cover;border-radius:4px;display:block;">';
+        }
+        h+='</div></div></div>';
+      });
+      h+='</div>';
+    }
+    if(item.notes){
+      h+='<div style="background:rgba(176,80,80,0.06);border:1px solid rgba(176,80,80,0.2);border-radius:3px;padding:10px 12px;margin-top:6px;">';
+      h+='<div style="font-size:8px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:4px;">⚠️ À noter</div>';
+      h+='<div style="font-size:13px;color:var(--stone);line-height:1.5;">'+esc(item.notes)+'</div>';
+      h+='</div>';
+    }
+    h+='</div>';
+  });
+  return h+'</div>';
+}
+
+
+// ═══════════════════════════════════════════════
+// AVIS
+// ═══════════════════════════════════════════════
+var AVIS_PRESETS=[
+  {nom:'Google',color:'#4285F4'},
+  {nom:'Airbnb',color:'#FF5A5F'},
+  {nom:'Booking.com',color:'#003580'},
+  {nom:'TripAdvisor',color:'#34E0A1'},
+  {nom:'Gîtes de France',color:'#C8322E'},
+  {nom:'Abritel',color:'#F26827'},
+  {nom:'Clévacances',color:'#0076B5'},
+  {nom:'Autre',color:'#9B7E60'}
+];
+
+function buildAvisPage(){
+  var a=S.avis||{};
+  var liens=a.liens||[];
+  var s='<svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:var(--bark);stroke:none;"><polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3 12 2"/></svg>';
+  var h='<div class="page-body">';
+  h+='<div class="rv" style="margin-bottom:12px;">';
+  h+='<div class="stars">'+s+s+s+s+s+'</div>';
+  h+='<p class="rv-msg">'+(a.msg?richVal(a.msg):'Votre avis compte beaucoup pour nous !')+'</p>';
+  h+='</div>';
+  if(!liens.length){
+    h+='<div style="text-align:center;padding:20px;color:var(--dust);font-size:12px;">Aucun lien configuré.</div>';
+  } else {
+    liens.forEach(function(l){
+      if(!l.url)return;
+      var col=l.color||'var(--stone)';
+      h+='<a href="'+esc(l.url)+'" target="_blank" style="display:flex;align-items:center;gap:12px;background:var(--white);border:1px solid var(--border);border-radius:4px;padding:14px 16px;margin-bottom:8px;text-decoration:none;transition:background .15s;" style="cursor:pointer;">';
+      h+='<div style="width:38px;height:38px;border-radius:8px;background:'+col+';display:flex;align-items:center;justify-content:center;flex-shrink:0;">';
+      h+='<svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;"><polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3 12 2"/></svg>';
+      h+='</div>';
+      h+='<div style="flex:1;">';
+      h+='<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:var(--stone);">'+esc(l.nom||'Laisser un avis')+'</div>';
+      h+='<div style="font-size:9px;color:var(--dust);letter-spacing:1px;text-transform:uppercase;margin-top:1px;">Laisser un avis</div>';
+      h+='</div>';
+      h+='<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:var(--fog);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>';
+      h+='</a>';
+    });
+  }
+  return h+'</div>';
+}
+
+function openEditAvis(){
+  editKey='avis';
+  var a=S.avis||{msg:'',liens:[]};
+  if(!a.liens)a.liens=[];
+  var presetOpts=AVIS_PRESETS.map(function(p){return '<option value="'+p.nom+'|'+p.color+'">'+p.nom+'</option>';}).join('');
+  var h='<div class="ap-f"><label>Message d\'invitation</label>';
+  h+='<div class="rte-wrap">'+rteToolbar('avisMsg')+'<textarea class="ap-ta rte-ta" id="avisMsg" style="min-height:60px;">'+esc(a.msg||'')+'</textarea></div></div>';
+  h+='<div style="margin-top:14px;margin-bottom:6px;font-size:8px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--bark);">Liens</div>';
+  h+='<div id="avisLiensList">';
+  a.liens.forEach(function(l,i){h+=renderAvisLienForm(l,i,presetOpts);});
+  h+='</div>';
+  h+='<button class="ap-fb" style="width:100%;margin-top:6px;padding:9px;font-size:8px;letter-spacing:1.5px;" onclick="addAvisLien()">+ Ajouter un lien</button>';
+  h+='<button class="ap-sv" style="margin-top:8px;" onclick="saveAvis()">Enregistrer</button>';
+  h+='<div class="ap-ok" id="editOk">Modifications enregistrées</div>';
+  document.getElementById('editTitle').textContent='Avis';
+  document.getElementById('editBody').innerHTML=h;
+  document.getElementById('shOv').classList.add('on');
+}
+
+function renderAvisLienForm(l,i,presetOpts){
+  var col=l.color||'#9B7E60';
+  var h='<div id="avlien'+i+'" style="border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:6px;background:var(--cream);">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+  h+='<div style="display:flex;align-items:center;gap:8px;">';
+  h+='<div style="width:28px;height:28px;border-radius:6px;background:'+col+';flex-shrink:0;" id="avcolor'+i+'"></div>';
+  h+='<select class="ap-in" style="font-size:11px;padding:5px 8px;" id="avpreset'+i+'" onchange="applyAvisPreset('+i+',this)">';
+  h+='<option value="">— Choisir —</option>'+presetOpts;
+  h+='</select>';
+  h+='</div>';
+  h+='<span style="font-size:10px;color:var(--red);cursor:pointer;padding:3px 7px;border:1px solid rgba(176,80,80,.3);border-radius:2px;" onclick="removeAvisLien('+i+')">✕</span>';
+  h+='</div>';
+  h+='<div class="ap-f" style="margin-bottom:6px;"><label>Nom affiché</label><input class="ap-in" id="avnom'+i+'" value="'+esc(l.nom||'')+'" placeholder="Ex: Google, Airbnb…"></div>';
+  h+='<div class="ap-f"><label>URL</label><input class="ap-in" id="avurl'+i+'" value="'+esc(l.url||'')+'" placeholder="https://…"></div>';
+  h+='<input type="hidden" id="avcolval'+i+'" value="'+esc(col)+'">';
+  h+='</div>';
+  return h;
+}
+
+function applyAvisPreset(i,sel){
+  var parts=(sel.value||'').split('|');
+  if(parts.length<2)return;
+  var nom=parts[0],col=parts[1];
+  var nomEl=document.getElementById('avnom'+i);
+  var colEl=document.getElementById('avcolor'+i);
+  var colVal=document.getElementById('avcolval'+i);
+  if(nomEl&&!nomEl.value)nomEl.value=nom;
+  if(colEl)colEl.style.background=col;
+  if(colVal)colVal.value=col;
+}
+
+function collectAvisFields(){
+  var msg=document.getElementById('avisMsg');
+  if(!S.avis)S.avis={};
+  if(msg)S.avis.msg=msg.value;
+  var list=document.getElementById('avisLiensList');
+  if(!list)return;
+  var count=list.children.length;
+  S.avis.liens=[];
+  for(var i=0;i<count;i++){
+    var nom=document.getElementById('avnom'+i);
+    var url=document.getElementById('avurl'+i);
+    var col=document.getElementById('avcolval'+i);
+    if(url&&url.value)S.avis.liens.push({nom:(nom?nom.value:''),url:url.value,color:(col?col.value:'#9B7E60')});
+  }
+}
+
+function addAvisLien(){
+  collectAvisFields();
+  if(!S.avis.liens)S.avis.liens=[];
+  S.avis.liens.push({nom:'',url:'',color:'#9B7E60'});
+  var presetOpts=AVIS_PRESETS.map(function(p){return '<option value="'+p.nom+'|'+p.color+'">'+p.nom+'</option>';}).join('');
+  var list=document.getElementById('avisLiensList');
+  var i=S.avis.liens.length-1;
+  var div=document.createElement('div');
+  div.innerHTML=renderAvisLienForm(S.avis.liens[i],i,presetOpts);
+  list.appendChild(div.firstChild);
+}
+
+function removeAvisLien(i){
+  collectAvisFields();
+  S.avis.liens.splice(i,1);
+  var presetOpts=AVIS_PRESETS.map(function(p){return '<option value="'+p.nom+'|'+p.color+'">'+p.nom+'</option>';}).join('');
+  var list=document.getElementById('avisLiensList');
+  list.innerHTML='';
+  S.avis.liens.forEach(function(l,j){list.innerHTML+=renderAvisLienForm(l,j,presetOpts);});
+}
+
+async function saveAvis(){
+  collectAvisFields();
+  await save();
+  var ok=document.getElementById('editOk');ok.style.display='block';
+  setTimeout(function(){ok.style.display='none';},2200);
+}
+
+// ═══════════════════════════════════════════════
+// GALERIE
+// ═══════════════════════════════════════════════
+var galleryCurrentIdx=0;
+var galleryItems=[];
+
+function renderGalleryAdminList(){
+  var list=document.getElementById('galleryAdminList');
+  var items=S.gallery||[];
+  var h='';
+  items.forEach(function(item,i){
+    h+='<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);">';
+    if(item.src)h+='<img src="'+item.src+'" style="width:50px;height:50px;object-fit:cover;border-radius:3px;flex-shrink:0;">';
+    else h+='<div style="width:50px;height:50px;background:var(--cream3);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;">🖼</div>';
+    h+='<div style="flex:1;min-width:0;">';
+    h+='<input class="ap-in" id="gcap'+i+'" value="'+esc(item.cap||'')+'" placeholder="Légende…" style="margin-bottom:4px;">';
+    h+='<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+    h+='<button class="ap-fb" onclick="pickGalleryImg('+i+')">Changer</button>';
+    h+='<input type="file" id="ginp'+i+'" accept="image/*" style="display:none" onchange="onGalleryImgPick(this,'+i+')">';
+    h+='<button style="font-size:8px;letter-spacing:1px;text-transform:uppercase;border:1px solid rgba(176,80,80,.3);background:none;color:var(--red);padding:5px 10px;border-radius:2px;cursor:pointer;font-family:inherit;" onclick="removeGalleryItem('+i+')">Supprimer</button>';
+    h+='</div></div></div>';
+  });
+  if(list)list.innerHTML=h;
+}
+
+function addGalleryItem(){
+  if(!S.gallery)S.gallery=[];
+  if(!S.avis)S.avis={msg:'',liens:[]};
+  if(!S.avis.liens)S.avis.liens=[];
+  S.gallery.push({src:'',cap:''});
+  renderGalleryAdminList();
+  renderManuelAdminList();
+}
+
+function removeGalleryItem(i){
+  if(!S.gallery)return;
+  S.gallery.splice(i,1);
+  renderGalleryAdminList();
+  renderManuelAdminList();
+}
+
+function pickGalleryImg(i){document.getElementById('ginp'+i).click();}
+function onGalleryImgPick(inp,i){
+  var f=inp.files[0];if(!f)return;
+  var r=new FileReader();r.onload=function(e){
+    if(!S.gallery)S.gallery=[];
+  if(!S.avis)S.avis={msg:'',liens:[]};
+  if(!S.avis.liens)S.avis.liens=[];
+    S.gallery[i].src=e.target.result;
+    renderGalleryAdminList();
+  renderManuelAdminList();
+  };r.readAsDataURL(f);
+}
+
+async function saveGallery(){
+  // Collect captions
+  var items=S.gallery||[];
+  items.forEach(function(item,i){
+    var capEl=document.getElementById('gcap'+i);
+    if(capEl)item.cap=capEl.value;
+  });
+  S.gallery=items;
+  await save();
+  var ok=document.getElementById('galleryOk');ok.style.display='block';
+  setTimeout(function(){ok.style.display='none';},2200);
+}
+
+function openEditGalerie(){
+  renderGalleryAdminList();
+  renderManuelAdminList();
+  // Scroll to galerie section in admin
+  document.querySelector('#adminPanel').scrollIntoView({behavior:'smooth'});
+}
+
+function buildGalleryPage(){
+  var items=S.gallery||[];
+  if(!items.length){
+    return '<div class="gallery-empty"><div style="font-size:40px;margin-bottom:16px;">🖼</div><div>Aucune photo pour l\'instant.</div><div style="font-size:10px;color:var(--fog);margin-top:6px;">L\'hôte ajoutera des photos de la propriété et de la région.</div></div>';
+  }
+  galleryItems=items;
+  var gitePhotos=items.filter(function(x){return !x.region;});
+  var regionPhotos=items.filter(function(x){return x.region;});
+  var h='';
+  if(gitePhotos.length){
+    h+='<div class="gallery-section-lbl">Le logement</div>';
+    h+='<div class="gallery-grid">';
+    gitePhotos.forEach(function(item,i){
+      if(!item.src)return;
+      h+='<div class="gallery-item" onclick="openGalleryFull('+i+')">';
+      h+='<img src="'+item.src+'" alt="'+esc(item.cap||'')+'" loading="lazy">';
+      if(item.cap)h+='<div class="gallery-item-cap">'+esc(item.cap)+'</div>';
+      h+='</div>';
+    });
+    h+='</div>';
+  }
+  if(regionPhotos.length){
+    h+='<div class="gallery-section-lbl">La région</div>';
+    h+='<div class="gallery-grid">';
+    regionPhotos.forEach(function(item,i){
+      if(!item.src)return;
+      h+='<div class="gallery-item" onclick="openGalleryFull('+(gitePhotos.length+i)+')">';
+      h+='<img src="'+item.src+'" alt="'+esc(item.cap||'')+'" loading="lazy">';
+      if(item.cap)h+='<div class="gallery-item-cap">'+esc(item.cap)+'</div>';
+      h+='</div>';
+    });
+    h+='</div>';
+  }
+  return h||'<div class="gallery-empty">Aucune photo</div>';
+}
+
+function openGalleryFull(idx){
+  var items=S.gallery||[];
+  if(!items[idx])return;
+  galleryCurrentIdx=idx;
+  document.getElementById('galleryFullImg').src=items[idx].src;
+  document.getElementById('galleryFullCap').textContent=items[idx].cap||'';
+  document.getElementById('galleryFull').classList.add('on');
+}
+function closeGalleryFull(){document.getElementById('galleryFull').classList.remove('on');}
+function galleryNav(dir){
+  var items=(S.gallery||[]).filter(function(x){return x.src;});
+  galleryCurrentIdx=(galleryCurrentIdx+dir+items.length)%items.length;
+  document.getElementById('galleryFullImg').src=items[galleryCurrentIdx].src;
+  document.getElementById('galleryFullCap').textContent=items[galleryCurrentIdx].cap||'';
+}
+
+function buildHistoirePage(){
+  var h=S.histoire||{};
+  var titre=h.titre||'Notre histoire';
+  var date=h.date||'';
+  var txt=h.txt||'L\'histoire de ce logement n\'a pas encore été rédigée.';
+  var quote=h.quote||'';
+  var img=h.img||'';
+  var out='<div class="histoire-body">';
+  if(img)out+='<img class="histoire-hero" src="'+img+'" alt="Histoire">';
+  out+='<div class="histoire-title">'+esc(titre)+'</div>';
+  if(date)out+='<div class="histoire-date">'+esc(date)+'</div>';
+  out+='<div class="histoire-txt">'+esc(txt)+'</div>';
+  if(quote)out+='<div class="histoire-quote"><p>'+esc(quote)+'</p></div>';
+  out+='</div>';
+  return out;
+}
+
+function openEditHistoire(){
+  var h=S.histoire||{};
+  document.getElementById('apHistoireTitre').value=h.titre||'';
+  document.getElementById('apHistoireDate').value=h.date||'';
+  document.getElementById('apHistoireTxt').value=h.txt||'';
+  document.getElementById('apHistoireQuote').value=h.quote||'';
+  updatePreview('histoire',h.img||'');
+  document.querySelector('.admin-panel').scrollIntoView({behavior:'smooth'});
+}
+
+// ═══════════════════════════════════════════════
+// DATA ROWS
+// ═══════════════════════════════════════════════
+function makeRows(t){return{
+  wifi:[{t:t.wifiNet,v:'MonWifi_5G'},{t:t.wifiPwd,v:'bienvenue2024!',cp:1}],
+  arrivee:[{t:t.checkinTime,v:t.checkinVal},{t:t.addr,v:'123 Rue de la Paix, 75001 Paris',map:1,ml:t.seeMap,addr:'123 Rue de la Paix, 75001 Paris'},{t:t.keybox,v:t.keyboxVal},{t:t.apt,v:t.aptVal}],
+  depart:[{t:t.checkoutTime,v:t.checkoutVal},{t:t.keys,v:t.keysVal},{t:t.checklist,v:t.checklistVal,cl:1}],
+  parking:[{t:t.parkInfo,v:t.parkVal},{t:t.access,v:t.accessVal,map:1,ml:t.seeParking,addr:'123 Rue de la Paix, 75001 Paris'}],
+  poubelles:[{t:t.recycling,v:t.recyclingVal},{t:t.waste,v:t.wasteVal},{t:t.glass,v:t.glassVal,map:1,ml:t.seeLocation,addr:'123 Rue de la Paix, 75001 Paris'}],
+  reglement:[{t:t.smoking,v:t.smokingVal},{t:t.pets,v:t.petsVal},{t:t.parties,v:t.partiesVal},{t:t.quiet,v:t.quietVal},{t:t.visitors,v:t.visitorsVal}],
+  restaurants:[{t:'Le Petit Bistro',v:t.r1,rating:'4.7',cat:t.rc1,addr:'10 Rue de Rivoli, 75001 Paris'},{t:'Pizza Bella',v:t.r2,rating:'4.5',cat:t.rc2,addr:'25 Boulevard Haussmann, 75009 Paris'},{t:'Sushi Garden',v:t.r3,rating:'4.6',cat:t.rc3,addr:'45 Rue du Faubourg, 75008 Paris'}],
+  bars:[{t:'Café de la Paix',v:t.b1,rating:'4.3',cat:t.bc1,addr:"5 Place de l'Opéra, 75009 Paris"},{t:'Le Comptoir',v:t.b2,rating:'4.4',cat:t.bc2,addr:'12 Rue Saint-Denis, 75001 Paris'},{t:'Rooftop Lounge',v:t.b3,rating:'4.8',cat:t.bc3,addr:'8 Rue de la Paix, 75002 Paris'}],
+  activites:[{t:'Musée du Louvre',v:t.a1,rating:'4.9',cat:t.ac1,addr:'Rue de Rivoli, 75001 Paris'},{t:'Jardin des Tuileries',v:t.a2,rating:'4.7',cat:t.ac2,addr:'Jardin des Tuileries, 75001 Paris'},{t:t.a3name,v:t.a3,rating:'4.5',cat:t.ac3,addr:'Place de la Bastille, 75011 Paris'}],
+  numeros:[{t:t.host,v:'+33 6 XX XX XX XX',tel:1},{t:t.medical,v:'15',tel:1},{t:t.fire,v:'18',tel:1},{t:t.police,v:'17',tel:1},{t:t.emergency,v:'112',tel:1}],
+  inventaire:[{t:t.inv1,v:t.inv1v},{t:t.inv2,v:t.inv2v},{t:t.inv3,v:t.inv3v},{t:t.inv4,v:t.inv4v}],
+  avis:[{t:t.reviewLink,v:'https://airbnb.com'},{t:t.reviewMsg,v:t.reviewMsgVal}],
+  epiceries:[{t:'Lidl',v:t.ep1,rating:'',cat:'Supermarché',addr:''},{t:'Super U',v:t.ep2,rating:'',cat:'Supermarché',addr:''},{t:'Intermarché',v:t.ep3,rating:'',cat:'Supermarché',addr:''}],
+  acces:[{t:t.ac1t,v:t.ac1v},{t:t.ac2t,v:t.ac2v},{t:t.ac3t,v:t.ac3v}],
+  services:[
+    {t:'Pharmacie Centrale',v:t.svc_ph1,cat:'pharmacie',addr:'',tel:''},
+    {t:'Médecin de garde',v:t.svc_doc1,cat:'medecin',addr:'',tel:''},
+    {t:'Laverie du Quartier',v:t.svc_lav1,cat:'laverie',addr:''},
+    {t:'Pressing Express',v:t.svc_press1,cat:'pressing',addr:''},
+    {t:'Distributeur BNP',v:t.svc_atm1,cat:'banque',addr:''},
+    {t:'Autre service',v:t.svc_other,cat:'autre',addr:''}
+  ]
+};}
+
+var LANGS={
+fr:{g:'Votre guide',f:'Merci pour votre séjour',wifi:'Wi-Fi',arrivee:'Infos arrivée',depart:'Infos départ',parking:'Parking',poubelles:'Poubelles',reglement:'Règlement',restaurants:'Restaurants',bars:'Bars & Cafés',activites:'Activités',epiceries:'Supermarché',services:'Services',acces:"Codes d'accès",numeros:'Numéros utiles',inventaire:'Équipements',avis:'Avis',galerie:'Galerie',histoire:'Histoire',manuel:'Manuel',cn:'Assistant du logement',cs:'En ligne',cw:'Bonjour — je suis votre assistant pour ce séjour. Posez-moi toutes vos questions.',s1:"Heure d'arrivée ?",s2:'Mot de passe Wi-Fi ?',s3:'Que faire autour ?',ph:'Votre question…',cp:'Copié',lang:'français',call:'Appeler',cat:{pratique:'Logement',decouverte:'Découverte',infos:'Infos utiles'},
+svcCats:{pharmacie:'💊 Pharmacie & Santé',medecin:'🩺 Médecin',laverie:'🧺 Laverie / Pressing',pressing:'👔 Pressing Express',banque:'🏧 Banque & Distributeur',autre:'🔧 Autres services'},
+rows:makeRows({wifiNet:'Réseau',wifiPwd:'Mot de passe',checkinTime:"Heure d'arrivée",checkinVal:'À partir de 15h00',addr:'Adresse',seeMap:'Voir sur la carte',keybox:'Boîte à clés',keyboxVal:'Code 1234 — à droite de la porte',apt:'Appartement',aptVal:'2ème étage, porte de gauche',checkoutTime:'Heure limite',checkoutVal:'Avant 11h00',keys:'Clés',keysVal:'Laisser sur la table de cuisine',checklist:'Checklist',checklistVal:"Éteindre les lumières\nFermer les fenêtres\nBaisser le chauffage\nVider les poubelles\nDéposer les clés",parkInfo:'Informations',parkVal:'Parking dédié dans cour privative.',access:'Accès',accessVal:"La grille s'ouvre automatiquement.",seeParking:'Voir le parking',recycling:'Tri sélectif (jaune)',recyclingVal:'Mardi et vendredi avant 20h',waste:'Ordures ménagères (gris)',wasteVal:'Tous les jours sauf dimanche',glass:'Verres, cartons & papiers',glassVal:'Au bout de la rue, environ 200 mètres.',seeLocation:"Voir l'emplacement",smoking:'Tabac',smokingVal:"Non fumeur à l'intérieur",pets:'Animaux',petsVal:'Non autorisés',parties:'Fêtes',partiesVal:'Non autorisées',quiet:'Silence nocturne',quietVal:'À respecter après 22h',visitors:'Visiteurs',visitorsVal:'Personnes déclarées uniquement',r1:'Cuisine française · 3 min à pied',rc1:'Français',r2:'Italienne · 5 min à pied',rc2:'Italien',r3:'Japonais · 8 min à pied',rc3:'Japonais',b1:'Ouvert dès 7h · 1 min',bc1:'Café',b2:'Bières artisanales · 2 min',bc2:'Bar',b3:'Cocktails & vue · 10 min',bc3:'Cocktails',a1:'15 min · 22€ · Fermé le mardi',ac1:'Musée',a2:'10 min · Gratuit · 7j/7',ac2:'Parc',a3name:'Location de vélos',a3:'3 min · 8€/h ou 25€/jour',ac3:'Sport',host:'Votre hôte',medical:'SAMU',fire:'Pompiers',police:'Police',emergency:'Urgences européennes',inv1:'Couchage',inv1v:'2 lits double + canapé-lit · Draps fournis',inv2:'Salle de bain',inv2v:'Baignoire + douche · Serviettes fournies',inv3:'Cuisine',inv3v:'Lave-vaisselle · Micro-ondes · Nespresso',inv4:'Électronique',inv4v:'TV 55" Netflix · Machine à laver',reviewLink:'Lien',reviewMsg:'Message',reviewMsgVal:'Votre avis est précieux pour nous. Merci pour votre séjour !',ep1:'5 min à pied',ep2:'8 min à pied',ep3:'10 min à pied',ac1t:'Portail / Grille',ac1v:'Code : 1234',ac2t:'Boîte à clés',ac2v:'Code : 5678 — à droite de la porte',ac3t:'Boîte aux lettres',ac3v:'Clé sur le trousseau principal',svc_ph1:'2 min à pied · Ouverte 9h–20h',svc_doc1:'Sur rendez-vous — appelez le 15 en urgence',svc_lav1:'5 min à pied · Ouverte 7j/7',svc_press1:'8 min à pied · Dépôt en 24h',svc_atm1:'3 min à pied · Sans frais avec CB Visa',svc_other:"À compléter par l'hôte"})},
+en:{g:'Your guide',f:'Thank you for your stay',wifi:'Wi-Fi',arrivee:'Check-in',depart:'Check-out',parking:'Parking',poubelles:'Bins',reglement:'House rules',restaurants:'Restaurants',bars:'Bars & Cafés',activites:'Activities',epiceries:'Grocery',services:'Services',acces:'Access codes',numeros:'Emergency contacts',inventaire:'Amenities',avis:'Review',galerie:'Gallery',histoire:'Our Story',manuel:'Appliances',cn:'Stay assistant',cs:'Online',cw:'Hello — I am your assistant for this stay. Ask me anything.',s1:'Check-in time?',s2:'Wi-Fi password?',s3:'What to do nearby?',ph:'Your question…',cp:'Copied',lang:'English',call:'Call',cat:{pratique:'Your Stay',decouverte:'Explore',infos:'Useful Info'},
+svcCats:{pharmacie:'💊 Pharmacy',medecin:'🩺 Doctor',laverie:'🧺 Laundry',pressing:'👔 Dry Cleaning',banque:'🏧 ATM & Bank',autre:'🔧 Other'},
+rows:makeRows({wifiNet:'Network',wifiPwd:'Password',checkinTime:'Check-in',checkinVal:'From 3:00 PM',addr:'Address',seeMap:'View on map',keybox:'Key box',keyboxVal:'Code 1234',apt:'Apartment',aptVal:'2nd floor, left door',checkoutTime:'Check-out',checkoutVal:'Before 11:00 AM',keys:'Keys',keysVal:'Leave on kitchen table',checklist:'Checklist',checklistVal:'Turn off lights\nClose windows\nTurn down heating\nEmpty bins\nReturn keys',parkInfo:'Parking',parkVal:'Dedicated spot in private courtyard.',access:'Access',accessVal:'Gate opens automatically.',seeParking:'View parking',recycling:'Recycling (yellow)',recyclingVal:'Tue & Fri before 8pm',waste:'General waste (grey)',wasteVal:'Every day except Sunday',glass:'Glass, cardboard & paper',glassVal:'End of the street, ~200m.',seeLocation:'View location',smoking:'Smoking',smokingVal:'No smoking indoors',pets:'Pets',petsVal:'Not allowed',parties:'Parties',partiesVal:'Not allowed',quiet:'Quiet hours',quietVal:'After 10pm',visitors:'Visitors',visitorsVal:'Registered guests only',r1:'French cuisine · 3 min walk',rc1:'French',r2:'Italian · 5 min walk',rc2:'Italian',r3:'Japanese · 8 min walk',rc3:'Japanese',b1:'From 7am · 1 min',bc1:'Café',b2:'Craft beers · 2 min',bc2:'Bar',b3:'Cocktails · 10 min',bc3:'Cocktails',a1:'15 min · €22',ac1:'Museum',a2:'10 min · Free',ac2:'Park',a3name:'Bike Rental',a3:'3 min · €8/h',ac3:'Sport',host:'Your host',medical:'SAMU',fire:'Fire dept',police:'Police',emergency:'112',inv1:'Sleeping',inv1v:'2 double beds + sofa bed',inv2:'Bathroom',inv2v:'Bathtub + shower',inv3:'Kitchen',inv3v:'Dishwasher · Microwave · Nespresso',inv4:'Electronics',inv4v:'55" TV Netflix · Washing machine',reviewLink:'Link',reviewMsg:'Message',reviewMsgVal:'Your review means a lot to us!',ep1:'5 min walk',ep2:'8 min walk',ep3:'10 min walk',ac1t:'Gate',ac1v:'Code: 1234',ac2t:'Key box',ac2v:'Code: 5678',ac3t:'Letterbox',ac3v:'Key on main keyring',svc_ph1:'2 min walk',svc_doc1:'By appointment',svc_lav1:'5 min walk',svc_press1:'8 min walk',svc_atm1:'3 min walk',svc_other:'To be filled by host'})},
+es:{g:'Tu guía',f:'Gracias por tu estancia',wifi:'Wi-Fi',arrivee:'Llegada',depart:'Salida',parking:'Aparcamiento',poubelles:'Basura',reglement:'Normas',restaurants:'Restaurantes',bars:'Bares & Cafés',activites:'Actividades',epiceries:'Supermercado',services:'Servicios',acces:'Códigos',numeros:'Contactos',inventaire:'Equipamiento',avis:'Reseña',galerie:'Galería',histoire:'Historia',manuel:'Manual',cn:'Asistente',cs:'En línea',cw:'Hola — soy tu asistente.',s1:'¿Hora llegada?',s2:'¿Wi-Fi?',s3:'¿Qué hacer?',ph:'Tu pregunta…',cp:'Copiado',lang:'español',call:'Llamar',cat:{pratique:'Alojamiento',decouverte:'Descubrir',infos:'Info'},svcCats:{pharmacie:'💊 Farmacia',medecin:'🩺 Médico',laverie:'🧺 Lavandería',pressing:'👔 Tintorería',banque:'🏧 Cajero',autre:'🔧 Otros'},
+rows:makeRows({wifiNet:'Red',wifiPwd:'Contraseña',checkinTime:'Llegada',checkinVal:'Desde 15:00',addr:'Dirección',seeMap:'Ver mapa',keybox:'Caja llaves',keyboxVal:'Código 1234',apt:'Apartamento',aptVal:'2ª planta',checkoutTime:'Salida',checkoutVal:'Antes 11:00',keys:'Llaves',keysVal:'En la mesa',checklist:'Lista',checklistVal:'Apagar luces\nCerrar ventanas\nBajar calefacción\nVaciar basura\nDejar llaves',parkInfo:'Parking',parkVal:'Plaza privada.',access:'Acceso',accessVal:'Verja automática.',seeParking:'Ver parking',recycling:'Reciclaje',recyclingVal:'Martes y viernes',waste:'Residuos',wasteVal:'Diario excepto domingo',glass:'Vidrio',glassVal:'Final de la calle.',seeLocation:'Ver',smoking:'Fumar',smokingVal:'No fumar',pets:'Animales',petsVal:'No permitidos',parties:'Fiestas',partiesVal:'No permitidas',quiet:'Silencio',quietVal:'Desde 22h',visitors:'Visitas',visitorsVal:'Solo registrados',r1:'3 min',rc1:'Francés',r2:'5 min',rc2:'Italiano',r3:'8 min',rc3:'Japonés',b1:'1 min',bc1:'Café',b2:'2 min',bc2:'Bar',b3:'10 min',bc3:'Cócteles',a1:'15 min · 22€',ac1:'Museo',a2:'10 min · Gratis',ac2:'Parque',a3name:'Bicicletas',a3:'3 min · 8€/h',ac3:'Deporte',host:'Anfitrión',medical:'112',fire:'Bomberos',police:'Policía',emergency:'112',inv1:'Dormitorio',inv1v:'2 camas dobles',inv2:'Baño',inv2v:'Bañera + ducha',inv3:'Cocina',inv3v:'Lavavajillas · Microondas',inv4:'Electrónica',inv4v:'TV Netflix · Lavadora',reviewLink:'Enlace',reviewMsg:'Mensaje',reviewMsgVal:'¡Gracias!',ep1:'5 min',ep2:'8 min',ep3:'10 min',ac1t:'Portal',ac1v:'Código: 1234',ac2t:'Caja llaves',ac2v:'Código: 5678',ac3t:'Buzón',ac3v:'Llave',svc_ph1:'2 min',svc_doc1:'Cita previa',svc_lav1:'5 min',svc_press1:'8 min',svc_atm1:'3 min',svc_other:'A rellenar'})},
+de:{g:'Ihr Reiseführer',f:'Vielen Dank',wifi:'WLAN',arrivee:'Check-in',depart:'Check-out',parking:'Parkplatz',poubelles:'Müll',reglement:'Hausordnung',restaurants:'Restaurants',bars:'Bars & Cafés',activites:'Aktivitäten',epiceries:'Supermarkt',services:'Services',acces:'Zugangscodes',numeros:'Wichtige Nummern',inventaire:'Ausstattung',avis:'Bewertung',galerie:'Galerie',histoire:'Geschichte',manuel:'Geräte',cn:'Assistent',cs:'Online',cw:'Hallo — ich bin Ihr Assistent.',s1:'Check-in?',s2:'WLAN?',s3:'Was gibt es?',ph:'Ihre Frage…',cp:'Kopiert',lang:'Deutsch',call:'Anrufen',cat:{pratique:'Unterkunft',decouverte:'Entdecken',infos:'Infos'},svcCats:{pharmacie:'💊 Apotheke',medecin:'🩺 Arzt',laverie:'🧺 Waschsalon',pressing:'👔 Reinigung',banque:'🏧 Geldautomat',autre:'🔧 Sonstiges'},
+rows:makeRows({wifiNet:'Netzwerk',wifiPwd:'Passwort',checkinTime:'Check-in',checkinVal:'Ab 15:00',addr:'Adresse',seeMap:'Karte',keybox:'Schlüsselbox',keyboxVal:'Code 1234',apt:'Wohnung',aptVal:'2. Etage',checkoutTime:'Abreise',checkoutVal:'Vor 11:00',keys:'Schlüssel',keysVal:'Auf Küchentisch',checklist:'Checkliste',checklistVal:'Licht aus\nFenster schließen\nHeizung runter\nMüll leeren\nSchlüssel abgeben',parkInfo:'Parkplatz',parkVal:'Stellplatz im Innenhof.',access:'Zugang',accessVal:'Tor öffnet automatisch.',seeParking:'Parkplatz',recycling:'Recycling',recyclingVal:'Di. und Fr.',waste:'Restmüll',wasteVal:'Täglich außer Sonntag',glass:'Glas',glassVal:'Ende der Straße.',seeLocation:'Standort',smoking:'Rauchen',smokingVal:'Rauchen verboten',pets:'Haustiere',petsVal:'Nicht gestattet',parties:'Partys',partiesVal:'Nicht gestattet',quiet:'Nachtruhe',quietVal:'Ab 22 Uhr',visitors:'Besucher',visitorsVal:'Nur angemeldete Gäste',r1:'3 Min.',rc1:'Französisch',r2:'5 Min.',rc2:'Italienisch',r3:'8 Min.',rc3:'Japanisch',b1:'1 Min.',bc1:'Café',b2:'2 Min.',bc2:'Bar',b3:'10 Min.',bc3:'Cocktails',a1:'15 Min. · 22€',ac1:'Museum',a2:'10 Min. · Kostenlos',ac2:'Park',a3name:'Fahrradverleih',a3:'3 Min.',ac3:'Sport',host:'Gastgeber',medical:'Notarzt',fire:'Feuerwehr',police:'Polizei',emergency:'112',inv1:'Schlafzimmer',inv1v:'2 Doppelbetten',inv2:'Badezimmer',inv2v:'Badewanne + Dusche',inv3:'Küche',inv3v:'Spülmaschine · Mikrowelle',inv4:'Elektronik',inv4v:'TV Netflix · Waschmaschine',reviewLink:'Link',reviewMsg:'Nachricht',reviewMsgVal:'Vielen Dank!',ep1:'5 Min.',ep2:'8 Min.',ep3:'10 Min.',ac1t:'Tor',ac1v:'Code: 1234',ac2t:'Schlüsselbox',ac2v:'Code: 5678',ac3t:'Briefkasten',ac3v:'Schlüssel',svc_ph1:'2 Min.',svc_doc1:'Termin',svc_lav1:'5 Min.',svc_press1:'8 Min.',svc_atm1:'3 Min.',svc_other:'Vom Gastgeber ausfüllen'})},
+it:{g:'La vostra guida',f:'Grazie per il soggiorno',wifi:'Wi-Fi',arrivee:'Check-in',depart:'Check-out',parking:'Parcheggio',poubelles:'Rifiuti',reglement:'Regolamento',restaurants:'Ristoranti',bars:'Bar & Caffè',activites:'Attività',epiceries:'Supermercato',services:'Servizi',acces:'Codici',numeros:'Numeri utili',inventaire:'Dotazioni',avis:'Recensione',galerie:'Galleria',histoire:'La Nostra Storia',manuel:'Manuale',cn:'Assistente',cs:'Online',cw:'Buongiorno — sono il vostro assistente.',s1:'Orario arrivo?',s2:'Wi-Fi?',s3:'Cosa fare?',ph:'La vostra domanda…',cp:'Copiato',lang:'italiano',call:'Chiama',cat:{pratique:'Alloggio',decouverte:'Scoprire',infos:'Info'},svcCats:{pharmacie:'💊 Farmacia',medecin:'🩺 Medico',laverie:'🧺 Lavanderia',pressing:'👔 Tintoria',banque:'🏧 Bancomat',autre:'🔧 Altri'},
+rows:makeRows({wifiNet:'Rete',wifiPwd:'Password',checkinTime:'Arrivo',checkinVal:'Dalle 15:00',addr:'Indirizzo',seeMap:'Mappa',keybox:'Cassetta chiavi',keyboxVal:'Codice 1234',apt:'Appartamento',aptVal:'2° piano',checkoutTime:'Partenza',checkoutVal:'Prima delle 11:00',keys:'Chiavi',keysVal:'Sul tavolo',checklist:'Lista',checklistVal:'Spegnere luci\nChiudere finestre\nRiscaldamento basso\nRifiuti\nChiavi',parkInfo:'Parcheggio',parkVal:'Posto nel cortile.',access:'Accesso',accessVal:'Cancello automatico.',seeParking:'Parcheggio',recycling:'Differenziata',recyclingVal:'Martedì e venerdì',waste:'Indifferenziata',wasteVal:'Ogni giorno',glass:'Vetro',glassVal:'In fondo alla strada.',seeLocation:'Posizione',smoking:'Fumo',smokingVal:'Vietato fumare',pets:'Animali',petsVal:'Non ammessi',parties:'Feste',partiesVal:'Non ammesse',quiet:'Silenzio',quietVal:'Dopo le 22:00',visitors:'Visitatori',visitorsVal:'Solo ospiti registrati',r1:'3 min',rc1:'Francese',r2:'5 min',rc2:'Italiano',r3:'8 min',rc3:'Giapponese',b1:'1 min',bc1:'Caffè',b2:'2 min',bc2:'Bar',b3:'10 min',bc3:'Cocktail',a1:'15 min · 22€',ac1:'Museo',a2:'10 min · Gratuito',ac2:'Parco',a3name:'Noleggio bici',a3:'3 min · 8€/h',ac3:'Sport',host:'Host',medical:'118',fire:'115',police:'113',emergency:'112',inv1:'Letti',inv1v:'2 matrimoniali',inv2:'Bagno',inv2v:'Vasca + doccia',inv3:'Cucina',inv3v:'Lavastoviglie · Microonde',inv4:'Elettronica',inv4v:'TV Netflix · Lavatrice',reviewLink:'Link',reviewMsg:'Messaggio',reviewMsgVal:'Grazie!',ep1:'5 min',ep2:'8 min',ep3:'10 min',ac1t:'Cancello',ac1v:'Codice: 1234',ac2t:'Cassetta chiavi',ac2v:'Codice: 5678',ac3t:'Cassetta postale',ac3v:'Chiave',svc_ph1:'2 min',svc_doc1:'Appuntamento',svc_lav1:'5 min',svc_press1:'8 min',svc_atm1:'3 min',svc_other:'Da compilare'})},
+nl:{g:'Uw gids',f:'Bedankt voor uw verblijf',wifi:'Wi-Fi',arrivee:'Aankomst',depart:'Vertrek',parking:'Parkeren',poubelles:'Afval',reglement:'Huisregels',restaurants:'Restaurants',bars:'Bars & Cafés',activites:'Activiteiten',epiceries:'Supermarkt',services:'Diensten',acces:'Toegangscodes',numeros:'Nuttige nummers',inventaire:'Voorzieningen',avis:'Beoordeling',galerie:'Galerij',histoire:'Geschiedenis',manuel:'Handleiding',cn:'Assistent',cs:'Online',cw:'Hallo — ik ben uw assistent.',s1:'Aankomsttijd?',s2:'Wi-Fi?',s3:'Wat te doen?',ph:'Uw vraag…',cp:'Gekopieerd',lang:'Nederlands',call:'Bellen',cat:{pratique:'Verblijf',decouverte:'Ontdekken',infos:'Info'},svcCats:{pharmacie:'💊 Apotheek',medecin:'🩺 Arts',laverie:'🧺 Wasserette',pressing:'👔 Stomerij',banque:'🏧 Geldautomaat',autre:'🔧 Overige'},
+rows:makeRows({wifiNet:'Netwerk',wifiPwd:'Wachtwoord',checkinTime:'Aankomst',checkinVal:'Vanaf 15:00',addr:'Adres',seeMap:'Kaart',keybox:'Sleutelkluisje',keyboxVal:'Code 1234',apt:'Appartement',aptVal:'2e verdieping',checkoutTime:'Vertrek',checkoutVal:'Voor 11:00',keys:'Sleutels',keysVal:'Op tafel',checklist:'Checklist',checklistVal:'Lichten uit\nRamen sluiten\nVerwarming laag\nAfval\nSleutels',parkInfo:'Parkeren',parkVal:'Vaste parkeerplaats.',access:'Toegang',accessVal:'Hek automatisch.',seeParking:'Parkeerplaats',recycling:'Recycling',recyclingVal:'Di en vr',waste:'Restafval',wasteVal:'Dagelijks',glass:'Glas',glassVal:'Einde straat.',seeLocation:'Locatie',smoking:'Roken',smokingVal:'Verboden',pets:'Huisdieren',petsVal:'Niet toegestaan',parties:'Feestjes',partiesVal:'Niet toegestaan',quiet:'Nachtrust',quietVal:'Na 22:00',visitors:'Bezoekers',visitorsVal:'Geregistreerde gasten',r1:'3 min',rc1:'Frans',r2:'5 min',rc2:'Italiaans',r3:'8 min',rc3:'Japans',b1:'1 min',bc1:'Café',b2:'2 min',bc2:'Bar',b3:'10 min',bc3:'Cocktails',a1:'15 min · €22',ac1:'Museum',a2:'10 min · Gratis',ac2:'Park',a3name:'Fietsverhuur',a3:'3 min · €8/u',ac3:'Sport',host:'Gastheer',medical:'112',fire:'112',police:'112',emergency:'112',inv1:'Slaapkamer',inv1v:'2 tweepersoonsbedden',inv2:'Badkamer',inv2v:'Bad + douche',inv3:'Keuken',inv3v:'Vaatwasser · Magnetron',inv4:'Elektronica',inv4v:'TV Netflix · Wasmachine',reviewLink:'Link',reviewMsg:'Bericht',reviewMsgVal:'Bedankt!',ep1:'5 min',ep2:'8 min',ep3:'10 min',ac1t:'Poort',ac1v:'Code: 1234',ac2t:'Sleutelkluisje',ac2v:'Code: 5678',ac3t:'Brievenbus',ac3v:'Sleutel',svc_ph1:'2 min',svc_doc1:'Afspraak',svc_lav1:'5 min',svc_press1:'8 min',svc_atm1:'3 min',svc_other:'In te vullen'})}
+};
+
+var DEF_MEM={vaisselle:'6 verres, 4 tasses, 8 assiettes, 4 bols',cuisine:'1 poêle, 2 casseroles, 1 wok, couteaux de cuisine',sdb:'2 serviettes par personne (max 4), sèche-cheveux',electro:'Lave-vaisselle, micro-ondes, Nespresso (capsules fournies), grille-pain',literie:'Draps fournis et changés entre chaque séjour',divers:"Fer à repasser, aspirateur, produits ménagers sous l'évier",sup:''};
+var DEF={pwd:'221081',name:'The House Station',sub:'Bienvenue chez nous',addr:'123 Rue de la Paix, Paris',avatar:'',bg:'',ctx:'',hostName:'',hostPhone:'',hostMsg:'',saison:'',saisonMsg:'',mem:JSON.parse(JSON.stringify(DEF_MEM)),places:{},ov:{},gallery:[],histoire:{titre:'',date:'',txt:'',quote:'',img:''},manuel:[],stats:{},avis:{msg:'Votre avis compte beaucoup pour nous — merci pour votre séjour !',liens:[{nom:'Airbnb',url:'https://airbnb.com',color:'#FF5A5F'},{nom:'Google',url:'https://google.com',color:'#4285F4'}]}};
+var S={},adm=false,taps=0,tapT=null,lng='fr',hist=[],chatOpen=false,editKey=null,staged={};
+
+// ═══════════════════════════════════════════════
+// LOAD / SAVE
+// ═══════════════════════════════════════════════
+async function load(){
+  // Try Supabase first, with a 5s timeout to avoid blocking forever
+  var cloudData=null;
+  try{
+    var timeoutPromise=new Promise(function(resolve){setTimeout(function(){resolve(null);},5000);});
+    cloudData=await Promise.race([cloudLoad(),timeoutPromise]);
+  }catch(e){cloudData=null;}
+  if(cloudData){
+    S=cloudData;
+  } else {
+    // Fallback localStorage
+    var local=localStorage.getItem('ths_data_'+getPropId());
+    S=local?JSON.parse(local):JSON.parse(JSON.stringify(DEF));
+  }
+  // Ensure all fields exist
+  if(!S.ov)S.ov={};
+  if(!S.mem)S.mem=JSON.parse(JSON.stringify(DEF_MEM));
+  if(!S.places)S.places={};
+  if(!S.stats)S.stats={};
+  if(!S.gallery)S.gallery=[];
+  if(!S.avis)S.avis={msg:'',liens:[]};
+  if(!S.avis.liens)S.avis.liens=[];
+  if(!S.histoire)S.histoire={titre:'',date:'',txt:'',quote:'',img:''};
+  if(!S.hostName)S.hostName='';
+  if(!S.hostPhone)S.hostPhone='';
+  if(!S.hostMsg)S.hostMsg='';
+  if(!S.saison)S.saison='';
+  if(!S.saisonMsg)S.saisonMsg='';
+}
+
+function compressImg(dataUrl,maxW,quality,cb){
+  if(!dataUrl||!dataUrl.startsWith('data:image')){cb(dataUrl);return;}
+  var img=new Image();
+  img.onload=function(){
+    var w=img.width,h=img.height;
+    if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+    var c=document.createElement('canvas');c.width=w;c.height=h;
+    c.getContext('2d').drawImage(img,0,0,w,h);
+    cb(c.toDataURL('image/jpeg',quality));
+  };
+  img.src=dataUrl;
+}
+
+async function compressAllImgs(obj){
+  return new Promise(function(resolve){
+    var clone=JSON.parse(JSON.stringify(obj));
+    var tasks=[];
+    // avatar & bg
+    ['avatar','bg'].forEach(function(k){
+      if(clone[k]&&clone[k].startsWith('data:')){
+        tasks.push(new Promise(function(res){compressImg(clone[k],800,0.7,function(v){clone[k]=v;res();});}));
+      }
+    });
+    // histoire img
+    if(clone.histoire&&clone.histoire.img&&clone.histoire.img.startsWith('data:')){
+      tasks.push(new Promise(function(res){compressImg(clone.histoire.img,1200,0.75,function(v){clone.histoire.img=v;res();});}));
+    }
+    // gallery
+    (clone.gallery||[]).forEach(function(item,i){
+      if(item.src&&item.src.startsWith('data:')){
+        tasks.push(new Promise(function(res){compressImg(item.src,1200,0.75,function(v){clone.gallery[i].src=v;res();});}));
+      }
+    });
+    // manuel step & item imgs
+    (clone.manuel||[]).forEach(function(item,mi){
+      if(item.img&&item.img.startsWith('data:')){
+        tasks.push(new Promise(function(res){compressImg(item.img,1200,0.75,function(v){clone.manuel[mi].img=v;res();});}));
+      }
+      (item.steps||[]).forEach(function(step,si){
+        if(step.img&&step.img.startsWith('data:')){
+          tasks.push(new Promise(function(res){compressImg(step.img,1200,0.75,function(v){clone.manuel[mi].steps[si].img=v;res();});}));
+        }
+      });
+    });
+    Promise.all(tasks).then(function(){resolve(clone);});
+  });
+}
+
+async function save(){
+  try{
+    var compressed=await compressAllImgs(S);
+    // Update S with compressed images
+    S.avatar=compressed.avatar;S.bg=compressed.bg;
+    if(S.histoire)S.histoire.img=compressed.histoire?compressed.histoire.img:S.histoire.img;
+    if(compressed.gallery)S.gallery=compressed.gallery;
+    if(compressed.manuel)S.manuel=compressed.manuel;
+    try{
+      localStorage.setItem('ths_data_'+getPropId(),JSON.stringify(S));
+    }catch(e){
+      showToast('⚠️ Données trop volumineuses — réduire les images');
+      console.error('localStorage quota exceeded',e);
+      return;
+    }
+    var ok=await cloudSaveUpsert(S);
+    if(ok)showSyncBar('☁️ Synchronisé avec Supabase');
+    else if(getSupaUrl())showSyncBar('⚠️ Sync Supabase échouée — données sauvées en local',true);
+  }catch(e){
+    console.error('save() error:',e);
+    showToast('⚠️ Erreur lors de la sauvegarde');
+  }
+}
+
+// Multi-logement (admin selector)
+function getKnownProps(){var r=localStorage.getItem('ths_known_props');return r?JSON.parse(r):[];}
+function addKnownProp(id,name){var arr=getKnownProps();if(!arr.find(function(x){return x.id===id;}))arr.push({id:id,name:name});localStorage.setItem('ths_known_props',JSON.stringify(arr));}
+
+function refreshPropSelect(){
+  var sel=document.getElementById('propSelect');if(!sel)return;
+  var cid=getPropId();
+  addKnownProp(cid,S.name||cid);
+  var arr=getKnownProps();
+  sel.innerHTML=arr.map(function(p){return '<option value="'+p.id+'"'+(p.id===cid?' selected':'')+'>'+esc(p.name)+'</option>';}).join('');
+}
+
+async function switchProp(id){
+  localStorage.setItem(PROP_ID_KEY,id);
+  document.getElementById('apPropId').value=id;
+  await load();render();fillAdminFields();loadWeather();
+}
+
+async function addProp(){
+  var name=prompt('Nom du nouveau logement :','Appartement 2');if(!name)return;
+  var id='prop'+Date.now();
+  localStorage.setItem(PROP_ID_KEY,id);
+  S=JSON.parse(JSON.stringify(DEF));S.name=name;
+  await save();refreshPropSelect();render();fillAdminFields();
+}
+
+async function deleteProp(){
+  var arr=getKnownProps();if(arr.length<=1){alert('Impossible de supprimer le seul logement.');return;}
+  if(!confirm('Supprimer ce logement ?'))return;
+  var cid=getPropId();
+  var remain=arr.filter(function(p){return p.id!==cid;});
+  localStorage.setItem('ths_known_props',JSON.stringify(remain));
+  localStorage.setItem(PROP_ID_KEY,remain[0].id);
+  await load();render();fillAdminFields();
+}
+
+// ═══════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════
+function render(){
+  var L=LANGS[lng]||LANGS['fr'];
+  document.getElementById('hName').textContent=S.name;
+  document.getElementById('hSub').textContent=S.sub;
+  document.getElementById('hAddr').textContent=S.addr;
+  var img=document.getElementById('avImg'),avSvg=document.querySelector('.av-wrap svg');
+  if(S.avatar){img.src=S.avatar;img.style.display='block';if(avSvg)avSvg.style.display='none';}
+  else{img.style.display='none';if(avSvg)avSvg.style.display='block';}
+  document.getElementById('heroBg').style.backgroundImage=S.bg?'url('+S.bg+')':'';
+  ['wifi','arrivee','depart','parking','poubelles','reglement','restaurants','bars','activites','epiceries','services','acces','numeros','inventaire','avis','galerie','histoire','manuel'].forEach(function(k){var el=document.getElementById('l_'+k);if(el)el.textContent=L[k]||k;});
+  document.getElementById('secLbl').textContent=L.g;
+  document.getElementById('footerTxt').textContent=L.f;
+  document.getElementById('chatName').textContent=L.cn;
+  document.getElementById('chatStatus').textContent=L.cs;
+  document.getElementById('chatWelcome').textContent=L.cw;
+  document.getElementById('sug1').textContent=L.s1;
+  document.getElementById('sug2').textContent=L.s2;
+  document.getElementById('sug3').textContent=L.s3;
+  document.getElementById('ci').placeholder=L.ph;
+  if(L.cat){
+    var cp=document.getElementById('catPratique');if(cp)cp.textContent=L.cat.pratique;
+    var cd=document.getElementById('catDecouverte');if(cd)cd.textContent=L.cat.decouverte;
+    var ci=document.getElementById('catInfos');if(ci)ci.textContent=L.cat.infos;
+  }
+  updateChatHostBar();renderSaison();
+}
+
+function updateChatHostBar(){
+  var bar=document.getElementById('chatHostBar'),btn=document.getElementById('chbBtn'),txt=document.getElementById('chbTxt');
+  if(!bar||!btn||!txt)return;
+  if(S.hostPhone){
+    bar.classList.add('on');btn.href='tel:'+S.hostPhone;
+    var name=S.hostName||'votre hôte';
+    txt.textContent=S.hostMsg?name+' — '+S.hostMsg:'Contacter '+name;
+  } else {bar.classList.remove('on');}
+}
+
+function getRows(k){var base=(LANGS[lng]||LANGS['fr']).rows[k]||[];var ov=(S.ov[lng]||{})[k];if(!ov)return base;return base.map(function(r,i){return Object.assign({},r,ov[i]?{t:ov[i].t||r.t,v:ov[i].v||r.v}:{});});}
+function getPlaces(key){if(S.places&&S.places[key]&&S.places[key].length>0)return S.places[key];return(LANGS[lng]||LANGS['fr']).rows[key]||[];}
+function show(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+
+function openPage(key){
+  if(adm)return;
+  var L=LANGS[lng]||LANGS['fr'];
+  document.getElementById('pageTitle').textContent=L[key]||key;
+  if(key==='galerie'){document.getElementById('pageContent').innerHTML=buildGalleryPage();show('s-page');trackVisit(key);return;}
+  if(key==='manuel'){document.getElementById('pageContent').innerHTML=buildManuelPage();show('s-page');trackVisit(key);return;}
+  if(key==='histoire'){document.getElementById('pageContent').innerHTML=buildHistoirePage();show('s-page');trackVisit(key);return;}
+  document.getElementById('pageContent').innerHTML=buildPage(key);
+  show('s-page');trackVisit(key);
+}
+function closePage(){show('s-home');}
+function openMaps(addr){var enc=encodeURIComponent(addr);if(/iPad|iPhone|iPod/.test(navigator.userAgent)){window.open('maps://?q='+enc,'_blank');}else{window.open('https://maps.google.com/?q='+enc,'_blank');}}
+function openGMaps(addr){window.open('https://maps.google.com/?q='+encodeURIComponent(addr),'_blank');}
+function mapEmbed(addr){return '<iframe src="https://maps.google.com/maps?q='+encodeURIComponent(addr)+'&output=embed&z=15" class="map-iframe" allowfullscreen loading="lazy"></iframe>';}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function unesc(s){return(s||'').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>');}
+
+// ═══════════════════════════════════════════════
+// BUILD PAGE
+// ═══════════════════════════════════════════════
+function buildPage(key){
+  var L=LANGS[lng]||LANGS['fr'],rows=getRows(key);
+  if(key==='avis'){return buildAvisPage();}
+  if(key==='services'){
+    var places=getPlaces(key),cats=L.svcCats||{},bycat={};
+    places.forEach(function(r){var c=r.cat||'autre';if(!bycat[c])bycat[c]=[];bycat[c].push(r);});
+    var h='<div class="page-body">';
+    Object.keys(bycat).forEach(function(cat){
+      h+='<div class="ic"><div class="svc-cat-hd">'+esc(cats[cat]||cat)+'</div>';
+      bycat[cat].forEach(function(r){
+        h+='<div style="padding:10px 0;border-bottom:1px solid var(--border);"><div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:var(--stone);margin-bottom:2px;">'+esc(r.t)+'</div>';
+        if(r.v)h+='<div style="font-size:11px;color:var(--dust);margin-bottom:6px;">'+esc(r.v)+'</div>';
+        if(r.addr)h+='<div class="map-card" style="margin:6px 0 8px;border-radius:3px;overflow:hidden;">'+mapEmbed(r.addr)+'</div>';
+        h+='<div style="display:flex;gap:7px;flex-wrap:wrap;">';
+        if(r.addr)h+='<button class="btn-main" onclick="openMaps(\''+r.addr.replace(/'/g,"\\'")+'\')">Plans</button>';
+        if(r.tel)h+='<a href="tel:'+esc(r.tel)+'" class="btn-call">📞 Appeler</a>';
+        h+='</div></div>';
+      });
+      h+='</div>';
+    });
+    return h+'</div>';
+  }
+  if(key==='restaurants'||key==='bars'||key==='activites'||key==='epiceries'){
+    var places=getPlaces(key),h='<div class="page-body">';
+    places.forEach(function(r){
+      h+='<div class="place-card">';
+      h+='<div class="place-header"><div class="place-name">'+esc(r.t)+'</div>'+(r.rating?'<div class="place-badge">★ '+r.rating+'</div>':'')+'</div>';
+      if(r.cat||r.v)h+='<div class="place-meta">'+(r.cat?esc(r.cat)+' · ':'')+esc(r.v)+'</div>';
+      if(r.addr){h+='<div class="map-card" style="margin:8px -1px 10px;border-radius:3px;overflow:hidden;">'+mapEmbed(r.addr)+'</div>';h+='<div class="place-actions"><button class="btn-main" onclick="openMaps(\''+r.addr.replace(/'/g,"\\'")+'\')">Plans</button><button class="btn-sec" onclick="openGMaps(\''+r.addr.replace(/'/g,"\\'")+'\')">Google Maps</button></div>';}
+      h+='</div>';
+    });
+    return h+'</div>';
+  }
+  var h='<div class="page-body">';
+  rows.filter(function(r){return !r.cl;}).forEach(function(r){
+    h+='<div class="ic"><div class="ic-lbl">'+esc(r.t)+'</div>';
+    if(r.cp){h+='<div class="ic-val-mono">'+esc(r.v)+'</div><button class="btn-main" onclick="doCopy(\''+r.v.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">Copier le mot de passe</button>';}
+    else{h+='<div class="ic-val">'+richVal(r.v)+'</div>';
+      if(r.map&&r.addr){h+='<div style="margin-top:11px;display:flex;gap:7px;flex-wrap:wrap;"><button class="btn-main" onclick="openMaps(\''+r.addr.replace(/'/g,"\\'")+'\')">'+esc(r.ml)+'</button><button class="btn-sec" onclick="openGMaps(\''+r.addr.replace(/'/g,"\\'")+'\')">Google Maps</button></div><div class="map-card" style="margin-top:10px;">'+mapEmbed(r.addr)+'</div>';}
+      if(r.tel){h+='<a href="tel:'+esc(r.v)+'" class="btn-main" style="margin-top:10px;">'+(LANGS[lng]||LANGS['fr']).call+'</a>';}
+    }
+    h+='</div>';
+  });
+  rows.filter(function(r){return r.cl;}).forEach(function(r){var items=r.v.split('\n').filter(Boolean);h+='<div class="cl-card"><div class="cl-hd"><span class="cl-hd-txt">'+esc(r.t)+'</span></div>'+items.map(function(c){return '<div class="cl-row" onclick="togChk(this)"><div class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><span class="cl-txt">'+richVal(c)+'</span></div>';}).join('')+'</div>';});
+  return h+'</div>';
+}
+
+function doCopy(txt){var L=LANGS[lng]||LANGS['fr'];function fb(){try{var e=document.createElement('textarea');e.value=txt;e.style.cssText='position:fixed;opacity:0';document.body.appendChild(e);e.focus();e.select();document.execCommand('copy');document.body.removeChild(e);}catch(x){}}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){showToast(L.cp);},function(){fb();showToast(L.cp);});}else{fb();showToast(L.cp);}}
+function showToast(m){var el=document.getElementById('toast');document.getElementById('t-txt').textContent=m;el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(function(){el.classList.remove('on');},2000);}
+function togChk(el){el.classList.toggle('done');el.querySelector('.chk').classList.toggle('ok');}
+
+// ═══════════════════════════════════════════════
+// ADMIN
+// ═══════════════════════════════════════════════
+function onTap(){if(adm)return;taps++;clearTimeout(tapT);if(taps>=5){taps=0;openPwd();return;}tapT=setTimeout(function(){taps=0;},2000);}
+function openPwd(){document.getElementById('pwdIn').value='';document.getElementById('pwdErr').style.display='none';document.getElementById('pwdOv').classList.add('on');setTimeout(function(){document.getElementById('pwdIn').focus();},300);}
+function closePwd(){document.getElementById('pwdOv').classList.remove('on');}
+function checkPwd(){if(document.getElementById('pwdIn').value===S.pwd){closePwd();enterAdmin();}else{document.getElementById('pwdErr').style.display='block';document.getElementById('pwdIn').value='';}}
+
+function fillAdminFields(){
+  document.getElementById('apName').value=S.name||'';
+  document.getElementById('apSub').value=S.sub||'';
+  document.getElementById('apAddr').value=S.addr||'';
+  document.getElementById('apCtx').value=S.ctx||'';
+  document.getElementById('apHostName').value=S.hostName||'';
+  document.getElementById('apHostPhone').value=S.hostPhone||'';
+  document.getElementById('apHostMsg').value=S.hostMsg||'';
+  document.getElementById('apPwd').value='';document.getElementById('apPwd2').value='';
+  var sel=document.getElementById('apSaison');if(sel)sel.value=S.saison||'';
+  var sm=document.getElementById('apSaisonMsg');if(sm)sm.value=S.saisonMsg||'';
+  // Histoire
+  var h=S.histoire||{};
+  document.getElementById('apHistoireTitre').value=h.titre||'';
+  document.getElementById('apHistoireDate').value=h.date||'';
+  document.getElementById('apHistoireTxt').value=h.txt||'';
+  document.getElementById('apHistoireQuote').value=h.quote||'';
+  updatePreview('av',S.avatar);updatePreview('bg',S.bg);updatePreview('histoire',h.img||'');
+  var m=S.mem||{};
+  ['vaisselle','cuisine','sdb','electro','literie','divers','sup'].forEach(function(k){
+    var el=document.getElementById('mem'+k.charAt(0).toUpperCase()+k.slice(1));
+    if(el)el.value=m[k]||DEF_MEM[k]||'';
+  });
+  // Supabase fields
+  document.getElementById('apSupaUrl').value=getSupaUrl();
+  document.getElementById('apSupaKey').value=getSupaKey();
+  document.getElementById('apPropId').value=getPropId();
+  updateCloudStatusUI();
+  refreshPropSelect();
+  renderGalleryAdminList();
+  renderManuelAdminList();
+  buildFaqPanel();
+  var sp=document.getElementById('statsPanel');if(sp)sp.innerHTML=buildStatsHTML();
+}
+
+function enterAdmin(){
+  adm=true;staged={};
+  document.getElementById('adminBar').classList.add('on');
+  document.getElementById('adminPanel').classList.add('on');
+  document.getElementById('mainGrid').classList.add('adm');
+  fillAdminFields();
+}
+
+function exitAdmin(){
+  adm=false;staged={};
+  document.getElementById('adminBar').classList.remove('on');
+  document.getElementById('adminPanel').classList.remove('on');
+  document.getElementById('mainGrid').classList.remove('adm');
+  render();
+}
+
+async function saveAdmin(){
+  try{
+  S.name=document.getElementById('apName').value||S.name;
+  S.sub=document.getElementById('apSub').value||S.sub;
+  S.addr=document.getElementById('apAddr').value||S.addr;
+  S.ctx=document.getElementById('apCtx').value;
+  S.hostName=document.getElementById('apHostName').value||'';
+  S.hostPhone=document.getElementById('apHostPhone').value||'';
+  S.hostMsg=document.getElementById('apHostMsg').value||'';
+  S.saison=document.getElementById('apSaison').value||'';
+  S.saisonMsg=document.getElementById('apSaisonMsg').value||'';
+  // Histoire
+  if(!S.histoire)S.histoire={};
+  S.histoire.titre=document.getElementById('apHistoireTitre').value||'';
+  S.histoire.date=document.getElementById('apHistoireDate').value||'';
+  S.histoire.txt=document.getElementById('apHistoireTxt').value||'';
+  S.histoire.quote=document.getElementById('apHistoireQuote').value||'';
+  if(staged.av!==undefined)S.avatar=staged.av;
+  if(staged.bg!==undefined)S.bg=staged.bg;
+  if(staged.histoire!==undefined)S.histoire.img=staged.histoire;
+  var m=S.mem||{};
+  ['vaisselle','cuisine','sdb','electro','literie','divers','sup'].forEach(function(k){var el=document.getElementById('mem'+k.charAt(0).toUpperCase()+k.slice(1));if(el)m[k]=el.value;});
+  S.mem=m;
+  var p1=document.getElementById('apPwd').value,p2=document.getElementById('apPwd2').value;
+  if(p1&&p1===p2)S.pwd=p1;
+  // Supabase keys
+  var url=document.getElementById('apSupaUrl').value.trim();
+  var key=document.getElementById('apSupaKey').value.trim();
+  var pid=document.getElementById('apPropId').value.trim();
+  if(url)localStorage.setItem(SUPA_URL_KEY,url);
+  if(key)localStorage.setItem(SUPA_KEY_KEY,key);
+  if(pid)localStorage.setItem(PROP_ID_KEY,pid);
+  // Save gallery captions
+  var items=S.gallery||[];
+  items.forEach(function(item,i){var el=document.getElementById('gcap'+i);if(el)item.cap=el.value;});
+  S.gallery=items;
+  // Save manuel items
+  collectManuelFields();
+  S.manuel=(S.manuel||[]).filter(function(x){return x.nom;});
+  await save();
+  addKnownProp(getPropId(),S.name);
+  render();showToast('Enregistré ✓');
+  setTimeout(function(){exitAdmin();},400);
+  }catch(e){console.error('saveAdmin error:',e);showToast('⚠️ Erreur: '+e.message);}
+}
+
+function stageImg(inp,type){var f=inp.files[0];if(!f)return;var r=new FileReader();r.onload=function(e){staged[type]=e.target.result;updatePreview(type,e.target.result);};r.readAsDataURL(f);}
+function deleteImg(type){staged[type]='';updatePreview(type,'');}
+function updatePreview(type,val){
+  var isAv=type==='av',isBg=type==='bg',isHist=type==='histoire';
+  var prev=isAv?document.getElementById('prevAv'):isHist?document.getElementById('prevHistoire'):document.getElementById('prevBg');
+  var del=isAv?document.getElementById('delAv'):isHist?document.getElementById('delHistoire'):document.getElementById('delBg');
+  if(!prev||!del)return;
+  if(val){prev.src=val;prev.classList.add('on');del.classList.add('on');}
+  else{prev.src='';prev.classList.remove('on');del.classList.remove('on');}
+}
+
+
+// ═══════════════════════════════════════════════
+// RICH TEXT TOOLBAR
+// ═══════════════════════════════════════════════
+function rteToolbar(taId){
+  return '<div class="rte-bar">'+
+    '<button class="rte-btn" title="Gras" style="font-weight:700;" onclick="rteWrap(\''+taId+'\',\'<b>\',\'</b>\')">B</button>'+
+    '<button class="rte-btn" title="Souligné" style="text-decoration:underline;" onclick="rteWrap(\''+taId+'\',\'<u>\',\'</u>\')">U</button>'+
+    '<button class="rte-btn" title="Surligner" style="background:#fff59d;" onclick="rteWrap(\''+taId+'\',\'<mark>\',\'</mark>\')">▐</button>'+
+    '<div class="rte-sep"></div>'+
+    '<button class="rte-btn" title="Rouge" style="color:#B05050;font-weight:700;" onclick="rteWrap(\''+taId+'\',\'<span style=&quot;color:#B05050&quot;>\',\'</span>\')">R</button>'+
+  '</div>';
+}
+function rteWrap(taId, open, close){
+  var ta=document.getElementById(taId);
+  if(!ta)return;
+  var s=ta.selectionStart,e=ta.selectionEnd;
+  var val=ta.value;
+  var selected=val.substring(s,e);
+  ta.value=val.substring(0,s)+open+selected+close+val.substring(e);
+  ta.selectionStart=s+open.length;
+  ta.selectionEnd=e+open.length;
+  ta.focus();
+}
+function richVal(v){
+  // Render stored HTML tags safely (only allow b, u, mark, span with color style)
+  return (v||'').replace(/&/g,'&amp;').replace(/</g,'§LT§').replace(/>/g,'§GT§')
+    .replace(/§LT§b§GT§/g,'<b>').replace(/§LT§\/b§GT§/g,'</b>')
+    .replace(/§LT§u§GT§/g,'<u>').replace(/§LT§\/u§GT§/g,'</u>')
+    .replace(/§LT§mark§GT§/g,'<mark>').replace(/§LT§\/mark§GT§/g,'</mark>')
+    .replace(/§LT§span style="color:#B05050"§GT§/g,'<span style="color:#B05050">')
+    .replace(/§LT§span style=&amp;quot;color:#B05050&amp;quot;§GT§/g,'<span style="color:#B05050">')
+    .replace(/§LT§\/span§GT§/g,'</span>')
+    .replace(/\n/g,'<br>');
+}
+
+// ═══════════════════════════════════════════════
+// EDIT PAGES (sheets)
+// ═══════════════════════════════════════════════
+function openEdit(key){
+  editKey=key;
+  var L=LANGS[lng]||LANGS['fr'];
+  document.getElementById('editTitle').textContent=L[key]||key;
+  var isPlace=['restaurants','bars','activites','epiceries','services'].indexOf(key)>=0;
+  if(isPlace){openEditPlaces(key,L);return;}
+  var rows=getRows(key);
+  var h='';
+  rows.forEach(function(r,i){
+    var taId='ev'+i;
+    var inputField=r.cl
+      ?('<div class="rte-wrap">'+rteToolbar(taId)+'<textarea class="ap-ta rte-ta" id="'+taId+'">'+r.v+'</textarea></div>')
+      :('<input class="ap-in" id="'+taId+'" value="'+esc(r.v)+'">');
+    h+='<div class="e-row"><div class="ap-f"><label>Titre '+(i+1)+'</label><input class="ap-in" id="et'+i+'" value="'+esc(r.t)+'"></div><div class="ap-f"><label>Contenu</label>'+inputField+'</div></div>';
+  });
+  h+='<button class="ap-sv" onclick="saveEdit()">Enregistrer</button><div class="ap-ok" id="editOk">Modifications enregistrées</div>';
+  document.getElementById('editBody').innerHTML=h;
+  document.getElementById('shOv').classList.add('on');
+}
+
+function openEditPlaces(key,L){
+  var places=getPlaces(key),isServices=key==='services',catOpts='';
+  if(isServices){var cats=L.svcCats||{};catOpts='<option value="">—</option>'+Object.keys(cats).map(function(k){return '<option value="'+k+'">'+cats[k]+'</option>';}).join('');}
+  var h='<div id="places-list">';
+  places.forEach(function(r,i){h+=renderPlaceForm(r,i,isServices,catOpts);});
+  h+='</div><button class="ap-fb" style="width:100%;margin-top:8px;padding:10px;font-size:9px;letter-spacing:2px;" onclick="addPlace()">+ Ajouter</button>';
+  h+='<button class="ap-sv" style="margin-top:8px;" onclick="savePlaces()">Enregistrer tout</button>';
+  h+='<div class="ap-ok" id="editOk">Modifications enregistrées</div>';
+  document.getElementById('editBody').innerHTML=h;
+  document.getElementById('shOv').classList.add('on');
+}
+
+function renderPlaceForm(r,i,isServices,catOpts){
+  var catField=isServices&&catOpts?'<div class="ap-f"><label>Catégorie</label><select class="ap-in" id="pc'+i+'">'+catOpts.replace('value="'+r.cat+'"','value="'+r.cat+'" selected')+'</select></div>':'<div class="ap-f"><label>Catégorie</label><input class="ap-in" id="pc'+i+'" value="'+esc(r.cat||'')+'"></div>';
+  return '<div class="e-row" id="pf'+i+'"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><span style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--bark);">#'+(i+1)+'</span><span style="font-size:10px;color:var(--red);cursor:pointer;padding:4px 8px;border:1px solid rgba(176,80,80,.3);border-radius:2px;" onclick="removePlace('+i+')">Supprimer</span></div>'+
+    '<div class="ap-f"><label>Nom</label><input class="ap-in" id="pn'+i+'" value="'+esc(r.t||'')+'"></div>'+
+    '<div class="ap-f"><label>Description</label><input class="ap-in" id="pv'+i+'" value="'+esc(r.v||'')+'"></div>'+catField+
+    '<div class="ap-f"><label>Note (ex: 4.7)</label><input class="ap-in" id="pr'+i+'" value="'+esc(r.rating||'')+'"></div>'+
+    '<div class="ap-f"><label>Adresse</label><input class="ap-in" id="pa'+i+'" value="'+esc(r.addr||'')+'"></div>'+
+    '<div class="ap-f"><label>Téléphone</label><input class="ap-in" id="ptel'+i+'" value="'+esc(r.tel||'')+'"></div></div>';
+}
+
+function addPlace(){var list=document.getElementById('places-list');var i=list.children.length;var L=LANGS[lng]||LANGS['fr'];var isServices=editKey==='services';var catOpts=isServices?'<option value="">—</option>'+Object.keys(L.svcCats||{}).map(function(k){return '<option value="'+k+'">'+(L.svcCats[k])+'</option>';}).join(''):'';var div=document.createElement('div');div.innerHTML=renderPlaceForm({t:'',v:'',cat:'',rating:'',addr:'',tel:''},i,isServices,catOpts);list.appendChild(div.firstChild);}
+function removePlace(i){var forms=collectPlaceForms();forms.splice(i,1);var list=document.getElementById('places-list');list.innerHTML='';var L=LANGS[lng]||LANGS['fr'];var isServices=editKey==='services';var catOpts=isServices?'<option value="">—</option>'+Object.keys(L.svcCats||{}).map(function(k){return '<option value="'+k+'">'+(L.svcCats[k])+'</option>';}).join(''):'';forms.forEach(function(r,j){list.innerHTML+=renderPlaceForm(r,j,isServices,catOpts);});}
+function collectPlaceForms(){var list=document.getElementById('places-list');var count=list.children.length;var out=[];for(var i=0;i<count;i++){var sel=document.getElementById('pc'+i);out.push({t:(document.getElementById('pn'+i)||{value:''}).value,v:(document.getElementById('pv'+i)||{value:''}).value,cat:sel?sel.value:'',rating:(document.getElementById('pr'+i)||{value:''}).value,addr:(document.getElementById('pa'+i)||{value:''}).value,tel:(document.getElementById('ptel'+i)||{value:''}).value});}return out.filter(function(p){return p.t;});}
+async function savePlaces(){if(!S.places)S.places={};S.places[editKey]=collectPlaceForms();await save();var ok=document.getElementById('editOk');ok.style.display='block';setTimeout(function(){ok.style.display='none';},2200);}
+async function saveEdit(){var key=editKey,base=(LANGS[lng]||LANGS['fr']).rows[key]||[];if(!S.ov[lng])S.ov[lng]={};if(!S.ov[lng][key])S.ov[lng][key]=[];base.forEach(function(_,i){var t=document.getElementById('et'+i),v=document.getElementById('ev'+i);if(t&&v)S.ov[lng][key][i]={t:t.value,v:v.value};});await save();var ok=document.getElementById('editOk');ok.style.display='block';setTimeout(function(){ok.style.display='none';},2200);}
+function closeEdit(){document.getElementById('shOv').classList.remove('on');}
+function setLang(l,btn){document.querySelectorAll('.flag-btn').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');lng=l;hist=[];render();}
+
+// ═══════════════════════════════════════════════
+// SAISON
+// ═══════════════════════════════════════════════
+var SAISON_BG={ete:'#C4783A',automne:'#8B5A2B',hiver:'#5B7FA6',printemps:'#7A9E5F'};
+var SAISON_EMOJI={ete:'☀️',automne:'🍂',hiver:'❄️',printemps:'🌸'};
+function renderSaison(){var b=document.getElementById('saisonBanner');if(!b)return;if(S.saison&&S.saisonMsg){b.style.display='block';b.style.background=SAISON_BG[S.saison]||'var(--bark)';b.textContent=(SAISON_EMOJI[S.saison]||'')+' '+S.saisonMsg;}else{b.style.display='none';}}
+function applySaison(val){S.saison=val;S.saisonMsg=document.getElementById('apSaisonMsg').value;renderSaison();}
+
+// ═══════════════════════════════════════════════
+// MÉTÉO
+// ═══════════════════════════════════════════════
+var WX_ICONS={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',73:'🌨️',75:'❄️',80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️',96:'⛈️',99:'⛈️'};
+async function loadWeather(){
+  var w=document.getElementById('weatherWidget');if(!w)return;
+  try{var addr=encodeURIComponent(S.addr||'Paris, France');var geo=await fetch('https://nominatim.openstreetmap.org/search?q='+addr+'&format=json&limit=1',{headers:{'Accept-Language':'fr'}});var gd=await geo.json();if(!gd||!gd[0]){w.innerHTML='';return;}var lat=gd[0].lat,lon=gd[0].lon;var wx=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current_weather=true&timezone=auto');var wd=await wx.json();var cw=wd.current_weather;var icon=WX_ICONS[cw.weathercode]||'🌡️';w.innerHTML='<span class="weather-icon">'+icon+'</span><div style="display:flex;flex-direction:column;align-items:flex-end;"><span class="weather-temp">'+Math.round(cw.temperature)+'°C</span></div>';}catch(e){w.innerHTML='';}
+}
+
+// ═══════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════
+function trackVisit(key){if(!S.stats)S.stats={};S.stats[key]=(S.stats[key]||0)+1;save();}
+function buildStatsHTML(){
+  var keys=['wifi','arrivee','depart','parking','poubelles','reglement','restaurants','bars','activites','epiceries','services','acces','numeros','inventaire','avis','galerie','histoire','manuel'];
+  var stats=S.stats||{};var total=keys.reduce(function(a,k){return a+(stats[k]||0);},0);
+  var rows=keys.map(function(k){return{k:k,n:stats[k]||0};}).sort(function(a,b){return b.n-a.n;});
+  var h='<div style="margin-bottom:12px;"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dust);margin-bottom:10px;font-weight:600;">'+total+' consultations</div>';
+  rows.forEach(function(r){var pct=total>0?Math.round(r.n/total*100):0;var L=LANGS[lng]||LANGS['fr'];var lbl=L[r.k]||r.k;h+='<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="font-size:11px;color:var(--stone);">'+lbl+'</span><span style="font-size:11px;font-weight:600;color:var(--bark);">'+r.n+'</span></div><div style="height:4px;background:var(--fog);border-radius:2px;overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:var(--bark);border-radius:2px;"></div></div></div>';});
+  h+='<button class="ap-sv" style="margin-top:8px;background:var(--red);" onclick="resetStats()">Remettre à zéro</button></div>';
+  return h;
+}
+function resetStats(){if(confirm('Remettre les stats à zéro ?')){S.stats={};save();var p=document.getElementById('statsPanel');if(p)p.innerHTML=buildStatsHTML();}}
+
+// ═══════════════════════════════════════════════
+// CHAT
+// ═══════════════════════════════════════════════
+function toggleChat(){chatOpen=!chatOpen;document.getElementById('chatPanel').classList.toggle('on',chatOpen);document.getElementById('chatOv').classList.toggle('on',chatOpen);document.getElementById('fabDot').classList.remove('on');if(chatOpen)setTimeout(function(){document.getElementById('ci').focus();},400);}
+function addBub(role,txt){
+  var c=document.getElementById('msgs'),t=document.getElementById('typing');
+  var d=document.createElement('div');d.className='msg '+role;
+  var av='<div class="m-av"><svg viewBox="0 0 24 24" style="width:9px;height:9px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg></div>';
+  d.innerHTML=(role==='ai'?av:'')+'<div class="bub">'+txt+'</div>';
+  c.insertBefore(d,t);c.scrollTop=c.scrollHeight;
+}
+
+async function sendMsg(){
+  var inp=document.getElementById('ci'),txt=inp.value.trim();if(!txt)return;
+  inp.value='';addBub('me',txt);hist.push({role:'user',content:txt});
+  document.getElementById('typing').classList.add('on');
+  document.getElementById('csBtn').disabled=true;
+  document.getElementById('sugsBar').style.display='none';
+  // Save question to Supabase
+  saveChatQuestion(txt);
+  var L=LANGS[lng]||LANGS['fr'];
+  var ctx=Object.keys(L.rows).map(function(k){
+    if(['restaurants','bars','activites','services'].indexOf(k)>=0){var places=getPlaces(k);return L[k]+': '+places.map(function(r){return r.t+(r.cat?' ('+r.cat+')':'')+': '+r.v+(r.addr?' — '+r.addr:'')+(r.tel?' — Tel:'+r.tel:'');}).join(' | ');}
+    return L[k]+': '+getRows(k).map(function(r){return r.t+': '+r.v;}).join(' | ');
+  }).join('\n');
+  var m=S.mem||{};
+  var memCtx='--- INVENTAIRE ---\nVaisselle: '+(m.vaisselle||'')+'\nCuisine: '+(m.cuisine||'')+'\nSdb: '+(m.sdb||'')+'\nElectro: '+(m.electro||'')+'\nLiterie: '+(m.literie||'')+'\nDivers: '+(m.divers||'')+'\nNotes: '+(m.sup||'');
+  var hostCtx=S.hostPhone?('\n--- CONTACT HÔTE ---\nNom: '+(S.hostName||'Hôte')+'\nTéléphone: '+S.hostPhone+(S.hostMsg?'\nDisponibilité: '+S.hostMsg:'')):'';
+  var histoireCtx=S.histoire&&S.histoire.txt?'\n--- HISTOIRE DU LIEU ---\n'+S.histoire.txt:'';
+  var sys='You are a concise Airbnb assistant. Reply in '+L.lang+', max 3 sentences. Be precise about quantities when asked. If you cannot fully answer, mention that the guest can contact their host directly'+(S.hostPhone?' at '+S.hostPhone:'')+'. Do NOT end every response with this suggestion — only when truly needed.\nProperty: '+S.name+' — '+S.addr+'\n'+(S.ctx||'')+'\n'+memCtx+hostCtx+histoireCtx+'\n---\n'+ctx;
+  try{
+    var res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:300,system:sys,messages:hist})});
+    if(!res.ok)throw new Error();
+    var data=await res.json();var ans=(data.content&&data.content[0])?data.content[0].text:'—';
+    hist.push({role:'assistant',content:ans});
+    document.getElementById('typing').classList.remove('on');
+    addBub('ai',ans);
+    if(S.hostPhone&&(ans.toLowerCase().indexOf('hôte')>=0||ans.toLowerCase().indexOf('host')>=0||ans.toLowerCase().indexOf('contact')>=0||ans.toLowerCase().indexOf('appel')>=0)){
+      document.getElementById('chatHostBar').classList.add('on');
+    }
+  }catch(e){
+    document.getElementById('typing').classList.remove('on');
+    var fallback={fr:'Je ne peux pas répondre à cela.',en:'I cannot answer that.',es:'No puedo responder.',de:'Das kann ich nicht beantworten.',it:'Non riesco a rispondere.',nl:'Ik kan dat niet beantwoorden.'}[lng]||'—';
+    addBub('ai',fallback);
+    if(S.hostPhone)document.getElementById('chatHostBar').classList.add('on');
+  }
+  document.getElementById('csBtn').disabled=false;
+  document.getElementById('msgs').scrollTop=99999;
+}
+function sendSug(btn){document.getElementById('ci').value=btn.textContent;sendMsg();}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+async function init(){
+  // Safety: always hide the loading overlay after 6s max
+  var safetyTimer=setTimeout(function(){
+    var ov=document.getElementById('loadOv');if(ov)ov.classList.add('gone');
+  },6000);
+  try{
+    await load();
+    render();
+    loadWeather();
+    updateChatHostBar();
+  }catch(e){console.error('Init error:',e);}
+  clearTimeout(safetyTimer);
+  document.getElementById('loadOv').classList.add('gone');
+}
+init();
+</script>
+</body>
+</html>
