@@ -1,10 +1,11 @@
-index.html 
+index.html
 <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>The House Station</title>
+<title id="pageTitle">Gîte Mana</title>
+<link id="faviconLink" rel="icon" type="image/png" href="">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -346,8 +347,18 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
       <div class="ap-sec">
         <div class="ap-hd">Identité</div>
         <div class="ap-f"><label>Nom</label><input class="ap-in" id="apName"></div>
+        <div class="ap-f"><label>Titre onglet navigateur</label><input class="ap-in" id="apTabTitle" placeholder="Gîte Mana"></div>
+        <div class="ap-f"><label>Favicon (icône onglet)</label>
+          <img id="faviconPreview" style="display:none;width:32px;height:32px;object-fit:contain;border-radius:4px;margin-bottom:6px;border:1px solid var(--border);">
+          <div style="display:flex;gap:8px;">
+            <button class="ap-fb" onclick="pickFavicon()">Choisir une image</button>
+            <button id="faviconDelBtn" onclick="delFavicon()" style="display:none;font-size:8px;letter-spacing:1px;text-transform:uppercase;border:1px solid rgba(176,80,80,.3);background:none;color:var(--red);padding:4px 8px;border-radius:2px;cursor:pointer;font-family:inherit;">Supprimer</button>
+          </div>
+          <input type="file" id="faviconFile" accept="image/*" style="display:none" onchange="loadFavicon(this)">
+        </div>
         <div class="ap-f"><label>Sous-titre</label><input class="ap-in" id="apSub"></div>
         <div class="ap-f"><label>Adresse</label><input class="ap-in" id="apAddr"></div>
+        <div class="ap-f"><label>Ville pour la météo</label><input class="ap-in" id="apMeteoVille" placeholder="Vallon-Pont-d'Arc"></div>
         <div class="ap-f">
           <label>Photo de profil</label>
           <div class="ap-img-row">
@@ -489,7 +500,7 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
       </div>
       <div class="tile-pair">
         <div class="tile" onclick="openPage('manuel')"><div class="e-dot" onclick="event.stopPropagation();openEditManuel()">✎</div><div class="tile-ico"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div><div class="tile-lbl" id="l_manuel">Manuel</div></div>
-        <div class="tile tile-ghost"></div>
+        <div class="tile" onclick="openPage('meteo')"><div class="tile-ico"><svg viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg></div><div class="tile-lbl">Météo</div></div>
       </div>
 
       <div class="cat-sep" style="margin-top:6px;"><div class="cat-sep-line"></div><div class="cat-sep-txt" id="catDecouverte">Découverte</div><div class="cat-sep-line"></div></div>
@@ -1421,6 +1432,8 @@ async function deleteProp(){
 function render(){
   var L=LANGS[lng]||LANGS['fr'];
   document.getElementById('hName').textContent=S.name;
+  document.getElementById('pageTitle').textContent=S.tabTitle||S.name||'Gîte Mana';
+  if(S.favicon){var fl=document.getElementById('faviconLink');if(fl){fl.href=S.favicon;fl.type='image/png';}}
   document.getElementById('hSub').textContent=S.sub;
   document.getElementById('hAddr').textContent=S.addr;
   var img=document.getElementById('avImg'),avSvg=document.querySelector('.av-wrap svg');
@@ -1466,6 +1479,7 @@ function openPage(key){
   if(key==='galerie'){document.getElementById('pageContent').innerHTML=buildGalleryPage();show('s-page');trackVisit(key);return;}
   if(key==='manuel'){document.getElementById('pageContent').innerHTML=buildManuelPage();show('s-page');trackVisit(key);return;}
   if(key==='histoire'){document.getElementById('pageContent').innerHTML=buildHistoirePage();show('s-page');trackVisit(key);return;}
+  if(key==='meteo'){show('s-page');trackVisit(key);buildMeteoPage();return;}
   document.getElementById('pageContent').innerHTML=buildPage(key);
   show('s-page');trackVisit(key);
 }
@@ -1540,6 +1554,11 @@ function checkPwd(){if(document.getElementById('pwdIn').value===S.pwd){closePwd(
 
 function fillAdminFields(){
   document.getElementById('apName').value=S.name||'';
+  document.getElementById('apTabTitle').value=S.tabTitle||'Gîte Mana';
+  document.getElementById('apMeteoVille').value=S.meteoVille||'Vallon-Pont-d\'Arc';
+  var fpr=document.getElementById('faviconPreview');
+  if(fpr)fpr.src=S.favicon||'';
+  if(fpr)fpr.style.display=S.favicon?'block':'none';
   document.getElementById('apSub').value=S.sub||'';
   document.getElementById('apAddr').value=S.addr||'';
   document.getElementById('apCtx').value=S.ctx||'';
@@ -1592,6 +1611,9 @@ function exitAdmin(){
 async function saveAdmin(){
   try{
   S.name=document.getElementById('apName').value||S.name;
+  S.tabTitle=document.getElementById('apTabTitle').value||S.tabTitle||'Gîte Mana';
+  S.meteoVille=document.getElementById('apMeteoVille').value||'Vallon-Pont-d\'Arc';
+  if(staged.favicon)S.favicon=staged.favicon;
   S.sub=document.getElementById('apSub').value||S.sub;
   S.addr=document.getElementById('apAddr').value||S.addr;
   S.ctx=document.getElementById('apCtx').value;
@@ -1635,6 +1657,29 @@ async function saveAdmin(){
   }catch(e){console.error('saveAdmin error:',e);showToast('⚠️ Erreur: '+e.message);}
 }
 
+
+function pickFavicon(){document.getElementById('faviconFile').click();}
+function loadFavicon(inp){
+  var file=inp.files[0];if(!file)return;
+  var rd=new FileReader();
+  rd.onload=function(e){
+    staged.favicon=e.target.result;
+    var pr=document.getElementById('faviconPreview');
+    if(pr){pr.src=e.target.result;pr.style.display='block';}
+    var db=document.getElementById('faviconDelBtn');
+    if(db)db.style.display='';
+  };
+  rd.readAsDataURL(file);
+}
+function delFavicon(){
+  staged.favicon=null;S.favicon='';
+  var pr=document.getElementById('faviconPreview');
+  if(pr){pr.src='';pr.style.display='none';}
+  var db=document.getElementById('faviconDelBtn');
+  if(db)db.style.display='none';
+  var fl=document.getElementById('faviconLink');
+  if(fl)fl.href='';
+}
 function stageImg(inp,type){var f=inp.files[0];if(!f)return;var r=new FileReader();r.onload=function(e){staged[type]=e.target.result;updatePreview(type,e.target.result);};r.readAsDataURL(f);}
 function deleteImg(type){staged[type]='';updatePreview(type,'');}
 function updatePreview(type,val){
@@ -1747,9 +1792,59 @@ function applySaison(val){S.saison=val;S.saisonMsg=document.getElementById('apSa
 // MÉTÉO
 // ═══════════════════════════════════════════════
 var WX_ICONS={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',73:'🌨️',75:'❄️',80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️',96:'⛈️',99:'⛈️'};
+
+async function buildMeteoPage(){
+  var pg=document.getElementById('pageContent');
+  pg.innerHTML='<div style="padding:20px;text-align:center;color:var(--dust);font-size:12px;">Chargement...</div>';
+  var lat=44.4075,lon=4.3969;
+  try{
+    var addr=encodeURIComponent(S.meteoVille||'Vallon-Pont-d\'Arc');
+    var geo=await fetch('https://nominatim.openstreetmap.org/search?q='+addr+'&format=json&limit=1',{headers:{'Accept-Language':'fr'}});
+    var gd=await geo.json();
+    if(gd&&gd[0]){lat=parseFloat(gd[0].lat);lon=parseFloat(gd[0].lon);}
+  }catch(e){}
+  try{
+    var wx=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7');
+    var wd=await wx.json();
+    var cw=wd.current_weather;
+    var daily=wd.daily;
+    var jours=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+    var mois=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+    var h='<div style="padding:16px;">';
+    // Current weather
+    h+='<div style="background:var(--cream2);border:1px solid var(--border);border-radius:8px;padding:20px;text-align:center;margin-bottom:16px;">';
+    h+='<div style="font-size:48px;line-height:1;">'+(WX_ICONS[cw.weathercode]||'🌡️')+'</div>';
+    h+='<div style="font-size:42px;font-weight:600;color:var(--stone);margin:8px 0;">'+Math.round(cw.temperature)+'°C</div>';
+    h+='<div style="font-size:11px;color:var(--dust);letter-spacing:1px;text-transform:uppercase;">'+(S.meteoVille||'Vallon-Pont-d\'Arc')+'</div>';
+    h+='</div>';
+    // 7 day forecast
+    h+='<div style="font-size:8px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--bark);margin-bottom:10px;">Prévisions 7 jours</div>';
+    for(var i=0;i<Math.min(7,daily.time.length);i++){
+      var d=new Date(daily.time[i]);
+      var nom=i===0?'Aujourd\'hui':i===1?'Demain':jours[d.getDay()]+' '+d.getDate()+' '+mois[d.getMonth()];
+      h+='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--cream2);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;">';
+      h+='<div style="width:70px;font-size:12px;color:var(--stone);">'+nom+'</div>';
+      h+='<div style="font-size:22px;">'+(WX_ICONS[daily.weathercode[i]]||'🌡️')+'</div>';
+      h+='<div style="flex:1;text-align:right;">';
+      h+='<span style="font-size:14px;font-weight:600;color:var(--stone);">'+Math.round(daily.temperature_2m_max[i])+'°</span>';
+      h+='<span style="font-size:12px;color:var(--dust);margin-left:6px;">'+Math.round(daily.temperature_2m_min[i])+'°</span>';
+      h+='</div>';
+      if(daily.precipitation_probability_max[i]>20){
+        h+='<div style="font-size:10px;color:#5b8dd9;">💧'+daily.precipitation_probability_max[i]+'%</div>';
+      }
+      h+='</div>';
+    }
+    h+='<div style="text-align:center;margin-top:12px;font-size:9px;color:var(--fog);">Données Open-Meteo</div>';
+    h+='</div>';
+    pg.innerHTML=h;
+  }catch(e){
+    pg.innerHTML='<div style="padding:40px;text-align:center;color:var(--dust);">Impossible de charger la météo.</div>';
+  }
+}
+
 async function loadWeather(){
   var w=document.getElementById('weatherWidget');if(!w)return;
-  try{var addr=encodeURIComponent(S.addr||'Paris, France');var geo=await fetch('https://nominatim.openstreetmap.org/search?q='+addr+'&format=json&limit=1',{headers:{'Accept-Language':'fr'}});var gd=await geo.json();if(!gd||!gd[0]){w.innerHTML='';return;}var lat=gd[0].lat,lon=gd[0].lon;var wx=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current_weather=true&timezone=auto');var wd=await wx.json();var cw=wd.current_weather;var icon=WX_ICONS[cw.weathercode]||'🌡️';w.innerHTML='<span class="weather-icon">'+icon+'</span><div style="display:flex;flex-direction:column;align-items:flex-end;"><span class="weather-temp">'+Math.round(cw.temperature)+'°C</span></div>';}catch(e){w.innerHTML='';}
+  var lat=44.4075,lon=4.3969;try{var addr=encodeURIComponent(S.meteoVille||'Vallon-Pont-d\'Arc');var geo=await fetch('https://nominatim.openstreetmap.org/search?q='+addr+'&format=json&limit=1',{headers:{'Accept-Language':'fr'}});var gd=await geo.json();if(gd&&gd[0]){lat=gd[0].lat;lon=gd[0].lon;}}catch(e){}try{var wx=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current_weather=true&timezone=auto');var wd=await wx.json();var cw=wd.current_weather;var icon=WX_ICONS[cw.weathercode]||'🌡️';w.innerHTML='<span class="weather-icon">'+icon+'</span><div style="display:flex;flex-direction:column;align-items:flex-end;"><span class="weather-temp">'+Math.round(cw.temperature)+'°C</span></div>';}catch(e){w.innerHTML='';}
 }
 
 // ═══════════════════════════════════════════════
