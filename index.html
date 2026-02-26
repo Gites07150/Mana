@@ -604,11 +604,14 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
 var SUPA_URL_KEY='ths_supa_url';
 var SUPA_KEY_KEY='ths_supa_key';
 var PROP_ID_KEY='ths_prop_id';
-// ID logement hardcodé dans ce fichier HTML — changez pour chaque logement
-var HARDCODED_PROP_ID='prop1';
 
-function getSupaUrl(){return localStorage.getItem(SUPA_URL_KEY)||'';}
-function getSupaKey(){return localStorage.getItem(SUPA_KEY_KEY)||'';}
+// ⚙️ CLÉS HARDCODÉES — modifiez ici pour chaque logement
+var HARDCODED_SUPA_URL='https://gixlcmcfbrruhuyjtama.supabase.co';
+var HARDCODED_SUPA_KEY='sb_publishable_oR3G6-LSkz1fqchvou2DOg_C19mCaET';
+var HARDCODED_PROP_ID='Mana';
+
+function getSupaUrl(){return localStorage.getItem(SUPA_URL_KEY)||HARDCODED_SUPA_URL;}
+function getSupaKey(){return localStorage.getItem(SUPA_KEY_KEY)||HARDCODED_SUPA_KEY;}
 function getPropId(){return localStorage.getItem(PROP_ID_KEY)||HARDCODED_PROP_ID;}
 
 async function supaFetch(path,method,body){
