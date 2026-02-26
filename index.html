@@ -314,32 +314,41 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
             <div style="font-size:9px;color:var(--dust);margin-top:1px;" id="csSub">Entrez vos clés Supabase ci-dessous</div>
           </div>
         </div>
-        <div class="supa-setup">
-          <div class="supa-step">
-            <div class="supa-step-hd"><div class="supa-num">1</div><div class="supa-step-title">URL du projet Supabase</div></div>
-            <div class="ap-f" style="margin-left:28px;margin-bottom:0;">
-              <input class="ap-in" id="apSupaUrl" placeholder="https://xxxxxxxx.supabase.co" style="font-family:monospace;font-size:11px;">
-            </div>
-          </div>
-          <div class="supa-step">
-            <div class="supa-step-hd"><div class="supa-num">2</div><div class="supa-step-title">Clé publique (publishable key)</div></div>
-            <div class="ap-f" style="margin-left:28px;margin-bottom:0;">
-              <input class="ap-in" id="apSupaKey" placeholder="sb_publishable_..." style="font-family:monospace;font-size:11px;">
-            </div>
-          </div>
-          <div class="supa-step">
-            <div class="supa-step-hd"><div class="supa-num">3</div><div class="supa-step-title">ID logement (unique par fichier HTML)</div></div>
-            <p style="margin-bottom:6px;">Pour le logement 2, mets "prop2", pour le 3 "prop3", etc.</p>
-            <div class="ap-f" style="margin-left:28px;margin-bottom:0;">
-              <input class="ap-in" id="apPropId" placeholder="prop1" style="font-family:monospace;font-size:11px;">
-            </div>
-          </div>
+        <!-- Bouton pour déverrouiller la section Supabase -->
+        <div id="supaLocked" style="text-align:center;padding:8px 0 4px;">
+          <button onclick="unlockSupabase()" style="display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid var(--border2);color:var(--dust);padding:8px 14px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;border-radius:2px;cursor:pointer;font-family:inherit;">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Accès protégé
+          </button>
         </div>
-        <button onclick="testSupabase()" style="display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid var(--bark);color:var(--bark);padding:8px 14px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;border-radius:2px;cursor:pointer;font-family:inherit;">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          Tester la connexion
-        </button>
-        <div id="supaTestResult" style="display:none;margin-top:8px;font-size:10px;padding:8px 12px;border-radius:2px;"></div>
+        <div id="supaUnlocked" style="display:none;">
+          <div class="supa-setup">
+            <div class="supa-step">
+              <div class="supa-step-hd"><div class="supa-num">1</div><div class="supa-step-title">URL du projet Supabase</div></div>
+              <div class="ap-f" style="margin-left:28px;margin-bottom:0;">
+                <input class="ap-in" id="apSupaUrl" placeholder="https://xxxxxxxx.supabase.co" style="font-family:monospace;font-size:11px;">
+              </div>
+            </div>
+            <div class="supa-step">
+              <div class="supa-step-hd"><div class="supa-num">2</div><div class="supa-step-title">Clé publique (publishable key)</div></div>
+              <div class="ap-f" style="margin-left:28px;margin-bottom:0;">
+                <input class="ap-in" id="apSupaKey" placeholder="sb_publishable_..." style="font-family:monospace;font-size:11px;">
+              </div>
+            </div>
+            <div class="supa-step">
+              <div class="supa-step-hd"><div class="supa-num">3</div><div class="supa-step-title">ID logement (unique par fichier HTML)</div></div>
+              <p style="margin-bottom:6px;">Pour le logement 2, mets "prop2", pour le 3 "prop3", etc.</p>
+              <div class="ap-f" style="margin-left:28px;margin-bottom:0;">
+                <input class="ap-in" id="apPropId" placeholder="prop1" style="font-family:monospace;font-size:11px;">
+              </div>
+            </div>
+          </div>
+          <button onclick="testSupabase()" style="display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid var(--bark);color:var(--bark);padding:8px 14px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;border-radius:2px;cursor:pointer;font-family:inherit;">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Tester la connexion
+          </button>
+          <div id="supaTestResult" style="display:none;margin-top:8px;font-size:10px;padding:8px 12px;border-radius:2px;"></div>
+        </div>
       </div>
 
       <!-- IDENTITÉ -->
@@ -391,21 +400,12 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
       </div>
 
       <!-- HISTOIRE -->
-      <div class="ap-sec">
-        <div class="ap-hd">📖 Histoire du logement</div>
-        <div class="ap-f"><label>Titre</label><input class="ap-in" id="apHistoireTitre" placeholder="Ex: L'histoire du Gîte Mana"></div>
-        <div class="ap-f"><label>Année / Date (optionnel)</label><input class="ap-in" id="apHistoireDate" placeholder="Ex: Fondé en 1920"></div>
-        <div class="ap-f"><label>Texte de l'histoire</label><textarea class="ap-ta" id="apHistoireTxt" style="min-height:120px;" placeholder="Racontez l'histoire de votre gîte…"></textarea></div>
-        <div class="ap-f"><label>Citation / Extrait (optionnel)</label><textarea class="ap-ta" id="apHistoireQuote" placeholder="Ex: &quot;Ce lieu existe depuis…&quot;"></textarea></div>
-        <div class="ap-f">
-          <label>Photo d'illustration</label>
-          <div class="ap-img-row">
-            <img class="ap-preview-bg" id="prevHistoire" src="" alt="" style="width:80px;height:50px;">
-            <button class="ap-fb" onclick="document.getElementById('inpHistoire').click()">Choisir</button>
-            <button class="ap-del" id="delHistoire" onclick="deleteImg('histoire')">Supprimer</button>
-            <input type="file" id="inpHistoire" accept="image/*" style="display:none" onchange="stageImg(this,'histoire')">
-          </div>
-        </div>
+      <!-- Champs histoire cachés pour compatibilité JS -->
+      <div style="display:none">
+        <input id="apHistoireTitre"><input id="apHistoireDate">
+        <textarea id="apHistoireTxt"></textarea><textarea id="apHistoireQuote"></textarea>
+        <img id="prevHistoire"><button id="delHistoire"></button>
+        <input type="file" id="inpHistoire">
       </div>
 
       <!-- MANUEL ÉQUIPEMENTS -->
@@ -656,6 +656,19 @@ async function cloudSaveUpsert(propData){
   }catch(e){cloudReady=false;return false;}
 }
 
+
+function unlockSupabase(){
+  var code=prompt('Code Supabase :');
+  if(code==='051206'){
+    document.getElementById('supaLocked').style.display='none';
+    document.getElementById('supaUnlocked').style.display='block';
+    document.getElementById('apSupaUrl').value=getSupaUrl();
+    document.getElementById('apSupaKey').value=getSupaKey();
+    document.getElementById('apPropId').value=getPropId();
+  } else if(code!==null){
+    showToast('Code incorrect');
+  }
+}
 async function testSupabase(){
   var url=document.getElementById('apSupaUrl').value.trim();
   var key=document.getElementById('apSupaKey').value.trim();
@@ -808,7 +821,7 @@ function renderManuelStepForm(i,si,step){
   var h='<div id="mstep'+i+'_'+si+'" style="border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:6px;background:var(--cream);">';
   h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">';
   h+='<div style="width:20px;height:20px;border-radius:50%;background:var(--bark);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(si+1)+'</div>';
-  h+='<input class="ap-in" id="mstxt'+i+'_'+si+'" value="'+esc(step.text||'')+'" placeholder="Description de l\'étape…" style="flex:1;">';
+  h+='<div class="rte-wrap" style="flex:1;">'+rteToolbar('mstxt'+i+'_'+si)+'<textarea class="ap-ta rte-ta" id="mstxt'+i+'_'+si+'" style="min-height:36px;border-radius:0 0 2px 2px;">'+esc(step.text||'')+'</textarea></div>';
   h+='<span style="font-size:10px;color:var(--red);cursor:pointer;padding:3px 7px;border:1px solid rgba(176,80,80,.3);border-radius:2px;flex-shrink:0;" onclick="removeManuelStep('+i+','+si+')">✕</span>';
   h+='</div>';
   // Step image
@@ -1555,7 +1568,27 @@ function openPwd(){document.getElementById('pwdIn').value='';document.getElement
 function closePwd(){document.getElementById('pwdOv').classList.remove('on');}
 function checkPwd(){if(document.getElementById('pwdIn').value===S.pwd){closePwd();enterAdmin();}else{document.getElementById('pwdErr').style.display='block';document.getElementById('pwdIn').value='';}}
 
+
+function initRteToolbars(){
+  // Wrap all static ap-ta textareas that don't already have a toolbar
+  var ids=['apCtx','memVaisselle','memCuisine','memSdb','memElectro','memLiterie','memDivers','memSup','apSaisonMsg'];
+  ids.forEach(function(id){
+    var ta=document.getElementById(id);
+    if(!ta)return;
+    var parent=ta.parentNode;
+    // Check if already wrapped
+    if(parent.classList&&parent.classList.contains('rte-wrap'))return;
+    // Create wrapper
+    var wrap=document.createElement('div');
+    wrap.className='rte-wrap';
+    wrap.innerHTML=rteToolbar(id);
+    ta.classList.add('rte-ta');
+    parent.insertBefore(wrap,ta);
+    wrap.appendChild(ta);
+  });
+}
 function fillAdminFields(){
+  initRteToolbars();
   document.getElementById('apName').value=S.name||'';
   document.getElementById('apTabTitle').value=S.tabTitle||'Gîte Mana';
   document.getElementById('apMeteoVille').value=S.meteoVille||'Vallon-Pont-d\'Arc';
@@ -1699,12 +1732,24 @@ function updatePreview(type,val){
 // RICH TEXT TOOLBAR
 // ═══════════════════════════════════════════════
 function rteToolbar(taId){
+  var t=taId;
+  function btn(lbl,title,style,open,close){
+    return '<button class="rte-btn" title="'+title+'" style="'+style+'" onclick="rteWrap(\''+t+'\',\''+open+'\',\''+close+'\')">'+lbl+'</button>';
+  }
   return '<div class="rte-bar">'+
-    '<button class="rte-btn" title="Gras" style="font-weight:700;" onclick="rteWrap(\''+taId+'\',\'<b>\',\'</b>\')">B</button>'+
-    '<button class="rte-btn" title="Souligné" style="text-decoration:underline;" onclick="rteWrap(\''+taId+'\',\'<u>\',\'</u>\')">U</button>'+
-    '<button class="rte-btn" title="Surligner" style="background:#fff59d;" onclick="rteWrap(\''+taId+'\',\'<mark>\',\'</mark>\')">▐</button>'+
+    btn('B','Gras','font-weight:700','<b>','</b>')+
+    btn('I','Italique','font-style:italic','<i>','</i>')+
+    btn('U','Souligné','text-decoration:underline','<u>','</u>')+
+    btn('S','Barré','text-decoration:line-through','<s>','</s>')+
     '<div class="rte-sep"></div>'+
-    '<button class="rte-btn" title="Rouge" style="color:#B05050;font-weight:700;" onclick="rteWrap(\''+taId+'\',\'<span style=&quot;color:#B05050&quot;>\',\'</span>\')">R</button>'+
+    '<label class="rte-btn" title="Couleur du texte" style="cursor:pointer;padding:0;width:28px;height:26px;position:relative;overflow:hidden;">'+
+      '<span style="font-size:13px;font-weight:700;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">A</span>'+
+      '<input type="color" value="#B05050" style="opacity:0;position:absolute;inset:0;width:100%;height:100%;cursor:pointer;" onchange="rteApplyColor(\''+t+'\',this.value,\'color\')">'+
+    '</label>'+
+    '<label class="rte-btn" title="Couleur du surlignage" style="cursor:pointer;padding:0;width:28px;height:26px;position:relative;overflow:hidden;background:#fff59d;">'+
+      '<span style="font-size:11px;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">▐</span>'+
+      '<input type="color" value="#fff59d" style="opacity:0;position:absolute;inset:0;width:100%;height:100%;cursor:pointer;" onchange="rteApplyColor(\''+t+'\',this.value,\'background\')">'+
+    '</label>'+
   '</div>';
 }
 function rteWrap(taId, open, close){
@@ -1718,14 +1763,19 @@ function rteWrap(taId, open, close){
   ta.selectionEnd=e+open.length;
   ta.focus();
 }
+function rteApplyColor(taId, color, prop){
+  var open=prop==='color'?'<span style="color:'+color+'">':'<span style="background:'+color+'">';
+  rteWrap(taId, open, '</span>');
+}
 function richVal(v){
-  // Render stored HTML tags safely (only allow b, u, mark, span with color style)
   return (v||'').replace(/&/g,'&amp;').replace(/</g,'§LT§').replace(/>/g,'§GT§')
     .replace(/§LT§b§GT§/g,'<b>').replace(/§LT§\/b§GT§/g,'</b>')
+    .replace(/§LT§i§GT§/g,'<i>').replace(/§LT§\/i§GT§/g,'</i>')
     .replace(/§LT§u§GT§/g,'<u>').replace(/§LT§\/u§GT§/g,'</u>')
+    .replace(/§LT§s§GT§/g,'<s>').replace(/§LT§\/s§GT§/g,'</s>')
     .replace(/§LT§mark§GT§/g,'<mark>').replace(/§LT§\/mark§GT§/g,'</mark>')
-    .replace(/§LT§span style="color:#B05050"§GT§/g,'<span style="color:#B05050">')
-    .replace(/§LT§span style=&amp;quot;color:#B05050&amp;quot;§GT§/g,'<span style="color:#B05050">')
+    .replace(/§LT§span style="(color|background):#([0-9a-fA-F]{3,6})"§GT§/g,'<span style="$1:#$2">')
+    .replace(/§LT§span style=&amp;quot;(color|background):#([0-9a-fA-F]{3,6})&amp;quot;§GT§/g,'<span style="$1:#$2">')
     .replace(/§LT§\/span§GT§/g,'</span>')
     .replace(/\n/g,'<br>');
 }
@@ -1743,9 +1793,7 @@ function openEdit(key){
   var h='';
   rows.forEach(function(r,i){
     var taId='ev'+i;
-    var inputField=r.cl
-      ?('<div class="rte-wrap">'+rteToolbar(taId)+'<textarea class="ap-ta rte-ta" id="'+taId+'">'+r.v+'</textarea></div>')
-      :('<input class="ap-in" id="'+taId+'" value="'+esc(r.v)+'">');
+    var inputField='<div class="rte-wrap">'+rteToolbar(taId)+'<textarea class="ap-ta rte-ta" id="'+taId+'" style="min-height:'+(r.cl?'80px':'42px')+';">'+esc(r.v)+'</textarea></div>';
     h+='<div class="e-row"><div class="ap-f"><label>Titre '+(i+1)+'</label><input class="ap-in" id="et'+i+'" value="'+esc(r.t)+'"></div><div class="ap-f"><label>Contenu</label>'+inputField+'</div></div>';
   });
   h+='<button class="ap-sv" onclick="saveEdit()">Enregistrer</button><div class="ap-ok" id="editOk">Modifications enregistrées</div>';
