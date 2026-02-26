@@ -249,7 +249,7 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
 <body>
 
 <div class="load-ov" id="loadOv">
-  <div class="load-logo">The House Station</div>
+  <div class="load-logo" id="loadLogo">Chargement...</div>
   <div class="load-spinner"></div>
   <div class="load-txt">Chargement...</div>
 </div>
@@ -1431,6 +1431,7 @@ async function deleteProp(){
 function render(){
   var L=LANGS[lng]||LANGS['fr'];
   document.getElementById('hName').textContent=S.name;
+  var ll=document.getElementById('loadLogo');if(ll)ll.textContent=S.name||'Gîte Mana';
   document.getElementById('pageTitle').textContent=S.tabTitle||S.name||'Gîte Mana';
   if(S.favicon){var fl=document.getElementById('faviconLink');if(fl){fl.href=S.favicon;fl.type='image/png';}}
   document.getElementById('hSub').textContent=S.sub;
