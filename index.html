@@ -1791,6 +1791,15 @@ function applySaison(val){S.saison=val;S.saisonMsg=document.getElementById('apSa
 // MÉTÉO
 // ═══════════════════════════════════════════════
 var WX_ICONS={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',73:'🌨️',75:'❄️',80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️',96:'⛈️',99:'⛈️'};
+function wxIcon(code, isDay){
+  // isDay: true = jour, false = nuit
+  if(!isDay){
+    if(code===0)return '🌙';
+    if(code===1)return '🌙';
+    if(code===2)return '☁️';
+  }
+  return WX_ICONS[code]||'🌡️';
+}
 
 async function buildMeteoPage(){
   var pg=document.getElementById('pageContent');
@@ -1812,7 +1821,7 @@ async function buildMeteoPage(){
     var h='<div style="padding:16px;">';
     // Current weather
     h+='<div style="background:var(--cream2);border:1px solid var(--border);border-radius:8px;padding:20px;text-align:center;margin-bottom:16px;">';
-    h+='<div style="font-size:48px;line-height:1;">'+(WX_ICONS[cw.weathercode]||'🌡️')+'</div>';
+    h+='<div style="font-size:48px;line-height:1;">'+wxIcon(cw.weathercode,cw.is_day!==0)+'</div>';
     h+='<div style="font-size:42px;font-weight:600;color:var(--stone);margin:8px 0;">'+Math.round(cw.temperature)+'°C</div>';
     h+='<div style="font-size:11px;color:var(--dust);letter-spacing:1px;text-transform:uppercase;">'+(S.meteoVille||'Vallon-Pont-d\'Arc')+'</div>';
     h+='</div>';
@@ -1823,7 +1832,7 @@ async function buildMeteoPage(){
       var nom=i===0?'Aujourd\'hui':i===1?'Demain':jours[d.getDay()]+' '+d.getDate()+' '+mois[d.getMonth()];
       h+='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--cream2);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;">';
       h+='<div style="width:70px;font-size:12px;color:var(--stone);">'+nom+'</div>';
-      h+='<div style="font-size:22px;">'+(WX_ICONS[daily.weathercode[i]]||'🌡️')+'</div>';
+      h+='<div style="font-size:22px;">'+wxIcon(daily.weathercode[i],true)+'</div>';
       h+='<div style="flex:1;text-align:right;">';
       h+='<span style="font-size:14px;font-weight:600;color:var(--stone);">'+Math.round(daily.temperature_2m_max[i])+'°</span>';
       h+='<span style="font-size:12px;color:var(--dust);margin-left:6px;">'+Math.round(daily.temperature_2m_min[i])+'°</span>';
@@ -1843,7 +1852,7 @@ async function buildMeteoPage(){
 
 async function loadWeather(){
   var w=document.getElementById('weatherWidget');if(!w)return;
-  var lat=44.4075,lon=4.3969;try{var addr=encodeURIComponent(S.meteoVille||'Vallon-Pont-d\'Arc');var geo=await fetch('https://nominatim.openstreetmap.org/search?q='+addr+'&format=json&limit=1',{headers:{'Accept-Language':'fr'}});var gd=await geo.json();if(gd&&gd[0]){lat=gd[0].lat;lon=gd[0].lon;}}catch(e){}try{var wx=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current_weather=true&timezone=auto');var wd=await wx.json();var cw=wd.current_weather;var icon=WX_ICONS[cw.weathercode]||'🌡️';w.innerHTML='<span class="weather-icon">'+icon+'</span><div style="display:flex;flex-direction:column;align-items:flex-end;"><span class="weather-temp">'+Math.round(cw.temperature)+'°C</span></div>';}catch(e){w.innerHTML='';}
+  var lat=44.4075,lon=4.3969;try{var addr=encodeURIComponent(S.meteoVille||'Vallon-Pont-d\'Arc');var geo=await fetch('https://nominatim.openstreetmap.org/search?q='+addr+'&format=json&limit=1',{headers:{'Accept-Language':'fr'}});var gd=await geo.json();if(gd&&gd[0]){lat=gd[0].lat;lon=gd[0].lon;}}catch(e){}try{var wx=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current_weather=true&timezone=auto');var wd=await wx.json();var cw=wd.current_weather;var icon=wxIcon(cw.weathercode,cw.is_day!==0);w.innerHTML='<span class="weather-icon">'+icon+'</span><div style="display:flex;flex-direction:column;align-items:flex-end;"><span class="weather-temp">'+Math.round(cw.temperature)+'°C</span></div>';}catch(e){w.innerHTML='';}
 }
 
 // ═══════════════════════════════════════════════
