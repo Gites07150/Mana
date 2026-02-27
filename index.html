@@ -507,6 +507,8 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
         <p style="font-size:10px;color:var(--dust);margin-bottom:12px;line-height:1.5;">Affichés en bas de page et dans la page Avis pour que vos voyageurs vous suivent.</p>
         <div id="socialAdminList"></div>
         <button class="ap-fb" style="width:100%;padding:10px;font-size:9px;letter-spacing:2px;margin-top:6px;" onclick="addSocial()">+ Ajouter un réseau</button>
+        <button class="ap-sv" style="margin-top:8px;" onclick="saveSocials()">Enregistrer les réseaux</button>
+        <div class="ap-ok" id="socialsOk">Réseaux enregistrés ✓</div>
       </div>
 
       <!-- MOT DE PASSE -->
@@ -1189,7 +1191,7 @@ function buildAvisPage(){
       h+='<a href="'+esc(s.url)+'" target="_blank" class="social-follow-card">';
       h+='<div style="width:40px;height:40px;border-radius:10px;background:'+bg+';display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;">'+icon+'</div>';
       h+='<div style="flex:1;">';
-      h+='<div style="font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--stone);">'+esc(s.nom||s.id||'Nous suivre')+'</div>';
+      h+='<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:var(--stone);">'+esc(s.nom||s.id||'Nous suivre')+'</div>';
       h+='<div style="font-size:9px;color:var(--dust);letter-spacing:1px;text-transform:uppercase;margin-top:1px;">Nous suivre</div>';
       h+='</div>';
       h+='<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:var(--fog);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>';
@@ -1660,30 +1662,42 @@ function renderSocialAdminList(){
   var socials=S.socials||[];
   var opts=SOCIAL_PRESETS.map(function(p){return '<option value="'+p.id+'">'+p.nom+'</option>';}).join('');
   var h='';
+  if(!socials.length){
+    h='<div style="text-align:center;padding:16px 0;font-size:11px;color:var(--fog);">Aucun réseau configuré. Cliquez + pour en ajouter.</div>';
+  }
   socials.forEach(function(s,i){
-    var col=s.color||'#9B7E60';
+    var col=s.gradient||s.color||'#9B7E60';
     h+='<div style="background:var(--white);border:1px solid var(--border);border-radius:4px;padding:12px;margin-bottom:8px;">';
-    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
     h+='<div style="display:flex;align-items:center;gap:8px;">';
-    h+='<div style="width:32px;height:32px;border-radius:8px;background:'+col+';display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;" id="socico'+i+'">'+(getSocialIcon(s.id||'autre'))+'</div>';
+    h+='<div style="width:36px;height:36px;border-radius:8px;background:'+col+';display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;" id="socico'+i+'">'+(getSocialIcon(s.id||'autre'))+'</div>';
     h+='<select class="ap-in" style="font-size:11px;padding:5px 8px;" id="soctype'+i+'" onchange="applySocialPreset('+i+',this)">';
-    h+='<option value="">— Réseau —</option>'+opts;
+    h+='<option value="">— Choisir le réseau —</option>'+opts;
     h+='</select>';
     h+='</div>';
-    h+='<span style="font-size:10px;color:var(--red);cursor:pointer;padding:3px 8px;border:1px solid rgba(176,80,80,.3);border-radius:2px;" onclick="removeSocial('+i+')">Supprimer</span>';
+    h+='<span style="font-size:10px;color:var(--red);cursor:pointer;padding:4px 10px;border:1px solid rgba(176,80,80,.3);border-radius:2px;white-space:nowrap;" onclick="removeSocial('+i+')">✕ Supprimer</span>';
     h+='</div>';
-    h+='<div class="ap-f"><label>Nom affiché</label><input class="ap-in" id="socnom'+i+'" value="'+esc(s.nom||'')+'" placeholder="Ex: @villa.mana"></div>';
-    h+='<div class="ap-f"><label>URL du profil</label><input class="ap-in" id="socurl'+i+'" value="'+esc(s.url||'')+'" placeholder="https://instagram.com/…"></div>';
-    h+='<input type="hidden" id="soccol'+i+'" value="'+esc(col)+'">';
+    h+='<div class="ap-f"><label>Nom affiché (ex: @villa.mana)</label><input class="ap-in" id="socnom'+i+'" value="'+esc(s.nom||'')+'" placeholder="@villa.mana ou Instagram…"></div>';
+    h+='<div class="ap-f"><label>URL du profil</label><input class="ap-in" id="socurl'+i+'" value="'+esc(s.url||'')+'" placeholder="https://instagram.com/votre_profil"></div>';
+    h+='<input type="hidden" id="soccol'+i+'" value="'+esc(s.color||'#9B7E60')+'">';
     h+='<input type="hidden" id="socgrad'+i+'" value="'+esc(s.gradient||'')+'">';
     h+='</div>';
   });
   el.innerHTML=h;
-  // Set select values
   socials.forEach(function(s,i){
     var sel=document.getElementById('soctype'+i);
     if(sel&&s.id)sel.value=s.id;
   });
+}
+
+async function saveSocials(){
+  collectSocials(true); // filtre les entrées sans nom ni URL
+  await save();
+  renderSocialBar();
+  renderSocialAdminList();
+  var ok=document.getElementById('socialsOk');
+  if(ok){ok.style.display='block';setTimeout(function(){ok.style.display='none';},2200);}
+  showToast('Réseaux enregistrés ✓');
 }
 
 function applySocialPreset(i,sel){
@@ -1701,19 +1715,19 @@ function applySocialPreset(i,sel){
 }
 
 function addSocial(){
-  collectSocials();
+  collectSocials(false);
   if(!S.socials)S.socials=[];
   S.socials.push({id:'',nom:'',url:'',color:'#9B7E60',gradient:''});
   renderSocialAdminList();
 }
 
 function removeSocial(i){
-  collectSocials();
+  collectSocials(false);
   S.socials.splice(i,1);
   renderSocialAdminList();
 }
 
-function collectSocials(){
+function collectSocials(filterEmpty){
   var el=document.getElementById('socialAdminList');if(!el)return;
   var count=el.children.length;
   S.socials=[];
@@ -1723,8 +1737,16 @@ function collectSocials(){
     var url=(document.getElementById('socurl'+i)||{}).value||'';
     var col=(document.getElementById('soccol'+i)||{}).value||'#9B7E60';
     var grad=(document.getElementById('socgrad'+i)||{}).value||'';
-    if(url)S.socials.push({id:id,nom:nom,url:url,color:col,gradient:grad});
+    // On garde toutes les entrées en cours d'édition; on filtre vides seulement à la sauvegarde finale
+    if(!filterEmpty || url || nom)S.socials.push({id:id,nom:nom,url:url,color:col,gradient:grad});
   }
+}
+
+function addSocialAndKeep(){
+  collectSocials(false);
+  if(!S.socials)S.socials=[];
+  S.socials.push({id:'',nom:'',url:'',color:'#9B7E60',gradient:''});
+  renderSocialAdminList();
 }
 
 function renderSocialBar(){
@@ -2267,7 +2289,7 @@ async function saveAdmin(){
   S.aiPersonality=document.getElementById('apAiPersonality').value||'';
   if(staged.aiAvatar)S.aiAvatar=staged.aiAvatar;
   collectContacts();
-  collectSocials();
+  collectSocials(true);
   S.saison=document.getElementById('apSaison').value||'';
   S.saisonMsg=document.getElementById('apSaisonMsg').value||'';
   // Histoire
@@ -2681,18 +2703,20 @@ function sendSug(btn){document.getElementById('ci').value=btn.textContent;sendMs
 // INIT
 // ═══════════════════════════════════════════════
 async function init(){
-  // Safety: always hide the loading overlay after 6s max
-  var safetyTimer=setTimeout(function(){
+  // Force hide overlay after 5s max, no matter what
+  setTimeout(function(){
     var ov=document.getElementById('loadOv');if(ov)ov.classList.add('gone');
-  },6000);
+  },5000);
   try{
     await load();
     render();
     loadWeather();
     updateChatHostBar();
-  }catch(e){console.error('Init error:',e);}
-  clearTimeout(safetyTimer);
-  document.getElementById('loadOv').classList.add('gone');
+  }catch(e){
+    console.error('Init error:',e);
+  }finally{
+    var ov=document.getElementById('loadOv');if(ov)ov.classList.add('gone');
+  }
 }
 init();
 </script>
