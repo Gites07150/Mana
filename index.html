@@ -2128,9 +2128,10 @@ async function buildMeteoPage(){
   }
 }
 
+var currentWeatherCtx='';
 async function loadWeather(){
   var w=document.getElementById('weatherWidget');if(!w)return;
-  var lat=44.4075,lon=4.3969;try{var addr=encodeURIComponent(S.meteoVille||'Vallon-Pont-d\'Arc');var geo=await fetch('https://nominatim.openstreetmap.org/search?q='+addr+'&format=json&limit=1',{headers:{'Accept-Language':'fr'}});var gd=await geo.json();if(gd&&gd[0]){lat=gd[0].lat;lon=gd[0].lon;}}catch(e){}try{var wx=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current_weather=true&timezone=auto');var wd=await wx.json();var cw=wd.current_weather;var icon=wxIcon(cw.weathercode,cw.is_day!==0);w.innerHTML='<span class="weather-icon">'+icon+'</span><div style="display:flex;flex-direction:column;align-items:flex-end;"><span class="weather-temp">'+Math.round(cw.temperature)+'°C</span></div>';}catch(e){w.innerHTML='';}
+  var lat=44.4075,lon=4.3969;try{var addr=encodeURIComponent(S.meteoVille||'Vallon-Pont-d\'Arc');var geo=await fetch('https://nominatim.openstreetmap.org/search?q='+addr+'&format=json&limit=1',{headers:{'Accept-Language':'fr'}});var gd=await geo.json();if(gd&&gd[0]){lat=gd[0].lat;lon=gd[0].lon;}}catch(e){}try{var wx=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current_weather=true&timezone=auto');var wd=await wx.json();var cw=wd.current_weather;var icon=wxIcon(cw.weathercode,cw.is_day!==0);var temp=Math.round(cw.temperature);currentWeatherCtx='--- MÉTÉO ACTUELLE ---\nTempérature: '+temp+'°C à '+(S.meteoVille||'Vallon-Pont-d\'Arc')+'\n';w.innerHTML='<span class="weather-icon">'+icon+'</span><div style="display:flex;flex-direction:column;align-items:flex-end;"><span class="weather-temp">'+temp+'°C</span></div>';}catch(e){w.innerHTML='';}
 }
 
 // ═══════════════════════════════════════════════
@@ -2191,10 +2192,11 @@ async function sendMsg(){
   var aiName=S.aiName||'Assistant Mana';
   var personality=S.aiPersonality?('Ton et personnalité: '+S.aiPersonality+'. '):'';
   var sys='Tu t\'appelles "'+aiName+'" et tu es l\'assistant virtuel du logement "'+S.name+'" situé à '+S.addr+'. Tu réponds TOUJOURS en '+L.lang+'. '+personality+
-    'Tu es chaleureux, serviable et tu fais de ton mieux pour aider les voyageurs. '+
+    'RÈGLE ABSOLUE DE CONCISION : Réponds TOUJOURS en 1 à 3 phrases maximum. Jamais plus. Sois direct et précis. '+
+    'Tu es chaleureux et serviable. '+
     'Tu as accès à toutes les informations du logement ci-dessous — utilise-les pour répondre précisément. '+
     'Si on te demande une quantité (verres, serviettes, etc.), cherche dans l\'inventaire et donne le chiffre exact. '+
-    'Pour la météo, donne une réponse générale sur le climat local si tu la connais. '+
+    'Pour la météo, utilise OBLIGATOIREMENT les données réelles fournies dans la section MÉTÉO ACTUELLE ci-dessous — ne dis jamais que tu n\'as pas l\'info météo. '+
     'Pour des questions générales (restaurants, activités, etc.), utilise les infos fournies OU tes connaissances générales sur la région. '+
     'RÈGLES DE SÉCURITÉ ABSOLUES — ne JAMAIS violer : '+
     '1. Tu peux donner le mot de passe Wi-Fi si on te le demande — c\'est une info normale pour les voyageurs. En revanche, ne JAMAIS révéler les codes de coffre, codes alarme, codes admin. '+
@@ -2205,7 +2207,7 @@ async function sendMsg(){
     '"Désolé, je ne dispose pas de cette information. Pour plus de détails, contactez '+hostName+(phone?' au '+phone:'')+'.". '+
     'Ne dis JAMAIS "je ne peux pas répondre" — essaie toujours de donner quelque chose d\'utile.\n\n'+
     (S.ctx?'INFOS SPÉCIALES DU LOGEMENT:\n'+S.ctx+'\n\n':'')+
-    memCtx+'\n'+hostCtx+histoireCtx+'\n\n--- DONNÉES DU LOGEMENT ---\n'+ctx;
+    currentWeatherCtx+memCtx+'\n'+hostCtx+histoireCtx+'\n\n--- DONNÉES DU LOGEMENT ---\n'+ctx;
   try{
     var aKey=getAnthropicKey()||getGroqKey();
     if(!aKey){addBub('ai','⚙️ Clé API manquante. Admin → Supabase (code 051206) → champ 4 → colle ta clé Groq (gratuit sur console.groq.com).');document.getElementById('typing').classList.remove('on');document.getElementById('csBtn').disabled=false;return;}
