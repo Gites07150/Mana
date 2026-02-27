@@ -348,10 +348,10 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
             </div>
           </div>
           <div class="supa-step" style="margin-top:0;">
-            <div class="supa-step-hd"><div class="supa-num">4</div><div class="supa-step-title">Clé API Anthropic (chatbot IA)</div></div>
-            <p style="margin-bottom:6px;font-size:10px;color:var(--dust);">Obtenir sur <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--bark);">console.anthropic.com</a> → API Keys</p>
+            <div class="supa-step-hd"><div class="supa-num">4</div><div class="supa-step-title">Clé API Groq (chatbot IA — gratuit)</div></div>
+            <p style="margin-bottom:6px;font-size:10px;color:var(--dust);">Obtenir <b>gratuitement</b> sur <a href="https://console.groq.com/keys" target="_blank" style="color:var(--bark);">console.groq.com</a> → API Keys</p>
             <div class="ap-f" style="margin-left:28px;margin-bottom:0;">
-              <input class="ap-in" id="apAnthropicKey" placeholder="sk-ant-..." type="password" style="font-family:monospace;font-size:11px;">
+              <input class="ap-in" id="apAnthropicKey" placeholder="gsk_..." type="password" style="font-family:monospace;font-size:11px;">
             </div>
           </div>
           <button onclick="testSupabase()" style="display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid var(--bark);color:var(--bark);padding:8px 14px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;border-radius:2px;cursor:pointer;font-family:inherit;">
@@ -461,8 +461,11 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
 
       <!-- FAQ CHATBOT -->
       <div class="ap-sec">
-        <div class="ap-hd">💬 Questions fréquentes du chatbot</div>
-        <p style="font-size:10px;color:var(--dust);margin-bottom:12px;line-height:1.5;">Questions posées par vos voyageurs. Ajoutez une réponse précise pour améliorer le bot.</p>
+        <div class="ap-hd">💬 Questions du chatbot</div>
+        <div style="display:flex;gap:6px;margin-bottom:12px;">
+          <button id="faqTabAll" onclick="switchFaqTab('all')" style="flex:1;padding:7px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;border-radius:2px;cursor:pointer;font-family:inherit;background:var(--stone);color:#fff;border:none;">Toutes</button>
+          <button id="faqTabUnanswered" onclick="switchFaqTab('unanswered')" style="flex:1;padding:7px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;border-radius:2px;cursor:pointer;font-family:inherit;background:none;color:var(--bark);border:1px solid var(--border2);">⚠️ Sans réponse</button>
+        </div>
         <div id="faqPanel"><div style="font-size:11px;color:var(--fog);text-align:center;padding:16px;">Aucune question enregistrée</div></div>
         <button class="ap-sv" style="margin-top:4px;" onclick="saveFaqAnswers()">Enregistrer les réponses</button>
       </div>
@@ -618,9 +621,11 @@ var PROP_ID_KEY='ths_prop_id';
 
 // ⚙️ CLÉS HARDCODÉES — modifiez ici pour chaque logement
 var HARDCODED_SUPA_URL='https://gixlcmcfbrruhuyjtama.supabase.co';
-var HARDCODED_SUPA_KEY='sb_publishable_oR3G6-LSkz1fqchvou2DOg_C19mCaET';
+var HARDCODED_SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpeGxjbWNmYnJydWh1eWp0YW1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMDE3NjksImV4cCI6MjA4NzY3Nzc2OX0.lyHAK-8Nz_P-FfZzpUe0fqSEP6Pkt6R7jCN0VMg1MWw';
 var HARDCODED_PROP_ID='Mana';
 var ANTHROPIC_KEY_STORE='ths_anthropic_key';
+var GROQ_KEY_STORE='ths_groq_key';
+function getGroqKey(){return localStorage.getItem(GROQ_KEY_STORE)||'';}
 
 function getSupaUrl(){return localStorage.getItem(SUPA_URL_KEY)||HARDCODED_SUPA_URL;}
 function getSupaKey(){return localStorage.getItem(SUPA_KEY_KEY)||HARDCODED_SUPA_KEY;}
@@ -631,7 +636,7 @@ async function supaFetch(path,method,body){
   var url=getSupaUrl();var key=getSupaKey();
   if(!url||!key)return null;
   try{
-    var opts={method:method||'GET',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key,'Prefer':'return=representation'}};
+    var m=method||'GET';var opts={method:m,headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key}};if(m!=='GET')opts.headers['Prefer']='return=representation';
     if(body)opts.body=JSON.stringify(body);
     var r=await fetch(url+'/rest/v1/'+path,opts);
     if(!r.ok){var t=await r.text();console.error('Supabase error:',r.status,t);return null;}
@@ -694,7 +699,7 @@ async function testSupabase(){
     var r=await fetch(url+'/rest/v1/properties?limit=1',{headers:{'apikey':key,'Authorization':'Bearer '+key}});
     if(r.ok||r.status===200){
       localStorage.setItem(SUPA_URL_KEY,url);localStorage.setItem(SUPA_KEY_KEY,key);localStorage.setItem(PROP_ID_KEY,pid);
-      var akey=document.getElementById('apAnthropicKey');if(akey&&akey.value.trim())localStorage.setItem(ANTHROPIC_KEY_STORE,akey.value.trim());
+      var akey=document.getElementById('apAnthropicKey');if(akey&&akey.value.trim()){localStorage.setItem(ANTHROPIC_KEY_STORE,akey.value.trim());localStorage.setItem(GROQ_KEY_STORE,akey.value.trim());}
       cloudReady=true;updateCloudStatusUI();
       res.style.background='rgba(90,138,106,0.1)';res.style.color='var(--green)';
       res.textContent='✓ Connexion réussie ! Clés enregistrées. Prop ID: '+pid;
@@ -767,18 +772,55 @@ async function saveFaqAnswers(){
   showToast('Réponses enregistrées ✓');
 }
 
-async function buildFaqPanel(){
+var _faqAllQuestions=[];
+var _faqTab='all';
+
+function switchFaqTab(tab){
+  _faqTab=tab;
+  var btnAll=document.getElementById('faqTabAll');
+  var btnUn=document.getElementById('faqTabUnanswered');
+  if(tab==='all'){
+    btnAll.style.background='var(--stone)';btnAll.style.color='#fff';btnAll.style.border='none';
+    btnUn.style.background='none';btnUn.style.color='var(--bark)';btnUn.style.border='1px solid var(--border2)';
+  } else {
+    btnUn.style.background='var(--stone)';btnUn.style.color='#fff';btnUn.style.border='none';
+    btnAll.style.background='none';btnAll.style.color='var(--bark)';btnAll.style.border='1px solid var(--border2)';
+  }
+  renderFaqPanel(_faqAllQuestions, tab);
+}
+
+function renderFaqPanel(questions, tab){
   var panel=document.getElementById('faqPanel');
-  var questions=await loadChatQuestions();
-  if(!questions.length){panel.innerHTML='<div style="font-size:11px;color:var(--fog);text-align:center;padding:16px;">Aucune question pour l\'instant</div>';return;}
+  var filtered=tab==='unanswered'?questions.filter(function(q){return !q.answer||q.answer.trim()==='';}) : questions;
+  if(!filtered.length){
+    var msg=tab==='unanswered'?'Toutes les questions ont une reponse !':'Aucune question pour l instant';
+    panel.innerHTML='<div style="font-size:11px;color:var(--fog);text-align:center;padding:16px;">'+msg+'</div>';
+    return;
+  }
   var h='';
-  questions.forEach(function(q){
-    h+='<div class="faq-item"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;"><div class="faq-q">'+esc(q.question)+'</div><div class="faq-count">'+q.count+'×</div></div>';
+  filtered.forEach(function(q){
     var faqId='faq_'+q.id;
-    h+='<div class="rte-wrap">'+rteToolbar(faqId)+'<textarea class="ap-ta rte-ta faq-a" id="'+faqId+'" data-faq-id="'+q.id+'" placeholder="Réponse personnalisée (améliore le bot)…" style="min-height:60px;">'+esc(q.answer||'')+'</textarea></div>';
+    var unanswered=!q.answer||q.answer.trim()==='';
+    h+='<div class="faq-item" style="'+(unanswered?'border-left:3px solid var(--bark);padding-left:10px;':'')+'">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
+    h+='<div class="faq-q">'+esc(q.question)+'</div>';
+    h+='<div style="display:flex;align-items:center;gap:6px;"><div class="faq-count">'+q.count+'x</div>'+(unanswered?'<div style="font-size:9px;background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:2px;font-weight:600;">SANS REP.</div>':'')+'</div>';
+    h+='</div>';
+    h+='<div class="rte-wrap">'+rteToolbar(faqId)+'<textarea class="ap-ta rte-ta faq-a" id="'+faqId+'" data-faq-id="'+q.id+'" placeholder="Tapez une reponse pour ameliorer l IA…" style="min-height:60px;">'+esc(q.answer||'')+'</textarea></div>';
     h+='</div>';
   });
   panel.innerHTML=h;
+  var uncount=questions.filter(function(q){return !q.answer||q.answer.trim()==='';}).length;
+  var btnUn=document.getElementById('faqTabUnanswered');
+  if(btnUn)btnUn.textContent=(uncount>0?'Sans repons ('+uncount+')':'Toutes repondues');
+}
+
+async function buildFaqPanel(){
+  var panel=document.getElementById('faqPanel');
+  panel.innerHTML='<div style="font-size:11px;color:var(--fog);text-align:center;padding:16px;">Chargement...</div>';
+  var questions=await loadChatQuestions();
+  _faqAllQuestions=questions||[];
+  renderFaqPanel(_faqAllQuestions, _faqTab);
 }
 
 
@@ -1296,19 +1338,19 @@ function makeRows(t){return{
 };}
 
 var LANGS={
-fr:{g:'Votre guide',f:'Merci pour votre séjour',wifi:'Wi-Fi',arrivee:'Infos arrivée',depart:'Infos départ',parking:'Parking',poubelles:'Poubelles',reglement:'Règlement',restaurants:'Restaurants',bars:'Bars & Cafés',activites:'Activités',epiceries:'Supermarché',services:'Services',acces:"Codes d'accès",numeros:'Numéros utiles',inventaire:'Équipements',avis:'Avis',galerie:'Galerie',histoire:'Histoire',manuel:'Manuel',cn:'Assistant du logement',cs:'En ligne',cw:'Bonjour — je suis votre assistant pour ce séjour. Posez-moi toutes vos questions.',s1:"Heure d'arrivée ?",s2:'Mot de passe Wi-Fi ?',s3:'Que faire autour ?',ph:'Votre question…',cp:'Copié',lang:'français',call:'Appeler',cat:{pratique:'Logement',decouverte:'Découverte',infos:'Infos utiles'},
+fr:{g:'Votre guide',f:'Merci pour votre séjour',wifi:'Wi-Fi',arrivee:'Infos arrivée',depart:'Infos départ',parking:'Parking',poubelles:'Poubelles',reglement:'Règlement',restaurants:'Restaurants',bars:'Bars & Cafés',activites:'Activités',epiceries:'Supermarché',services:'Services',acces:"Codes d'accès",numeros:'Numéros utiles',inventaire:'Équipements',avis:'Avis',galerie:'Galerie',histoire:'Histoire',manuel:'Manuel',cn:'Assistant Mana',cs:'En ligne',cw:'Bonjour — je suis votre assistant pour ce séjour. Posez-moi toutes vos questions.',s1:"Heure d'arrivée ?",s2:'Mot de passe Wi-Fi ?',s3:'Que faire autour ?',ph:'Votre question…',cp:'Copié',lang:'français',call:'Appeler',cat:{pratique:'Logement',decouverte:'Découverte',infos:'Infos utiles'},
 svcCats:{pharmacie:'💊 Pharmacie & Santé',medecin:'🩺 Médecin',laverie:'🧺 Laverie / Pressing',pressing:'👔 Pressing Express',banque:'🏧 Banque & Distributeur',autre:'🔧 Autres services'},
 rows:makeRows({wifiNet:'Réseau',wifiPwd:'Mot de passe',checkinTime:"Heure d'arrivée",checkinVal:'À partir de 15h00',addr:'Adresse',seeMap:'Voir sur la carte',keybox:'Boîte à clés',keyboxVal:'Code 1234 — à droite de la porte',apt:'Appartement',aptVal:'2ème étage, porte de gauche',checkoutTime:'Heure limite',checkoutVal:'Avant 11h00',keys:'Clés',keysVal:'Laisser sur la table de cuisine',checklist:'Checklist',checklistVal:"Éteindre les lumières\nFermer les fenêtres\nBaisser le chauffage\nVider les poubelles\nDéposer les clés",parkInfo:'Informations',parkVal:'Parking dédié dans cour privative.',access:'Accès',accessVal:"La grille s'ouvre automatiquement.",seeParking:'Voir le parking',recycling:'Tri sélectif (jaune)',recyclingVal:'Mardi et vendredi avant 20h',waste:'Ordures ménagères (gris)',wasteVal:'Tous les jours sauf dimanche',glass:'Verres, cartons & papiers',glassVal:'Au bout de la rue, environ 200 mètres.',seeLocation:"Voir l'emplacement",smoking:'Tabac',smokingVal:"Non fumeur à l'intérieur",pets:'Animaux',petsVal:'Non autorisés',parties:'Fêtes',partiesVal:'Non autorisées',quiet:'Silence nocturne',quietVal:'À respecter après 22h',visitors:'Visiteurs',visitorsVal:'Personnes déclarées uniquement',r1:'Cuisine française · 3 min à pied',rc1:'Français',r2:'Italienne · 5 min à pied',rc2:'Italien',r3:'Japonais · 8 min à pied',rc3:'Japonais',b1:'Ouvert dès 7h · 1 min',bc1:'Café',b2:'Bières artisanales · 2 min',bc2:'Bar',b3:'Cocktails & vue · 10 min',bc3:'Cocktails',a1:'15 min · 22€ · Fermé le mardi',ac1:'Musée',a2:'10 min · Gratuit · 7j/7',ac2:'Parc',a3name:'Location de vélos',a3:'3 min · 8€/h ou 25€/jour',ac3:'Sport',host:'Votre hôte',medical:'SAMU',fire:'Pompiers',police:'Police',emergency:'Urgences européennes',inv1:'Couchage',inv1v:'2 lits double + canapé-lit · Draps fournis',inv2:'Salle de bain',inv2v:'Baignoire + douche · Serviettes fournies',inv3:'Cuisine',inv3v:'Lave-vaisselle · Micro-ondes · Nespresso',inv4:'Électronique',inv4v:'TV 55" Netflix · Machine à laver',reviewLink:'Lien',reviewMsg:'Message',reviewMsgVal:'Votre avis est précieux pour nous. Merci pour votre séjour !',ep1:'5 min à pied',ep2:'8 min à pied',ep3:'10 min à pied',ac1t:'Portail / Grille',ac1v:'Code : 1234',ac2t:'Boîte à clés',ac2v:'Code : 5678 — à droite de la porte',ac3t:'Boîte aux lettres',ac3v:'Clé sur le trousseau principal',svc_ph1:'2 min à pied · Ouverte 9h–20h',svc_doc1:'Sur rendez-vous — appelez le 15 en urgence',svc_lav1:'5 min à pied · Ouverte 7j/7',svc_press1:'8 min à pied · Dépôt en 24h',svc_atm1:'3 min à pied · Sans frais avec CB Visa',svc_other:"À compléter par l'hôte"})},
-en:{g:'Your guide',f:'Thank you for your stay',wifi:'Wi-Fi',arrivee:'Check-in',depart:'Check-out',parking:'Parking',poubelles:'Bins',reglement:'House rules',restaurants:'Restaurants',bars:'Bars & Cafés',activites:'Activities',epiceries:'Grocery',services:'Services',acces:'Access codes',numeros:'Emergency contacts',inventaire:'Amenities',avis:'Review',galerie:'Gallery',histoire:'Our Story',manuel:'Appliances',cn:'Stay assistant',cs:'Online',cw:'Hello — I am your assistant for this stay. Ask me anything.',s1:'Check-in time?',s2:'Wi-Fi password?',s3:'What to do nearby?',ph:'Your question…',cp:'Copied',lang:'English',call:'Call',cat:{pratique:'Your Stay',decouverte:'Explore',infos:'Useful Info'},
+en:{g:'Your guide',f:'Thank you for your stay',wifi:'Wi-Fi',arrivee:'Check-in',depart:'Check-out',parking:'Parking',poubelles:'Bins',reglement:'House rules',restaurants:'Restaurants',bars:'Bars & Cafés',activites:'Activities',epiceries:'Grocery',services:'Services',acces:'Access codes',numeros:'Emergency contacts',inventaire:'Amenities',avis:'Review',galerie:'Gallery',histoire:'Our Story',manuel:'Appliances',cn:'Assistant Mana',cs:'Online',cw:'Hello — I am your assistant for this stay. Ask me anything.',s1:'Check-in time?',s2:'Wi-Fi password?',s3:'What to do nearby?',ph:'Your question…',cp:'Copied',lang:'English',call:'Call',cat:{pratique:'Your Stay',decouverte:'Explore',infos:'Useful Info'},
 svcCats:{pharmacie:'💊 Pharmacy',medecin:'🩺 Doctor',laverie:'🧺 Laundry',pressing:'👔 Dry Cleaning',banque:'🏧 ATM & Bank',autre:'🔧 Other'},
 rows:makeRows({wifiNet:'Network',wifiPwd:'Password',checkinTime:'Check-in',checkinVal:'From 3:00 PM',addr:'Address',seeMap:'View on map',keybox:'Key box',keyboxVal:'Code 1234',apt:'Apartment',aptVal:'2nd floor, left door',checkoutTime:'Check-out',checkoutVal:'Before 11:00 AM',keys:'Keys',keysVal:'Leave on kitchen table',checklist:'Checklist',checklistVal:'Turn off lights\nClose windows\nTurn down heating\nEmpty bins\nReturn keys',parkInfo:'Parking',parkVal:'Dedicated spot in private courtyard.',access:'Access',accessVal:'Gate opens automatically.',seeParking:'View parking',recycling:'Recycling (yellow)',recyclingVal:'Tue & Fri before 8pm',waste:'General waste (grey)',wasteVal:'Every day except Sunday',glass:'Glass, cardboard & paper',glassVal:'End of the street, ~200m.',seeLocation:'View location',smoking:'Smoking',smokingVal:'No smoking indoors',pets:'Pets',petsVal:'Not allowed',parties:'Parties',partiesVal:'Not allowed',quiet:'Quiet hours',quietVal:'After 10pm',visitors:'Visitors',visitorsVal:'Registered guests only',r1:'French cuisine · 3 min walk',rc1:'French',r2:'Italian · 5 min walk',rc2:'Italian',r3:'Japanese · 8 min walk',rc3:'Japanese',b1:'From 7am · 1 min',bc1:'Café',b2:'Craft beers · 2 min',bc2:'Bar',b3:'Cocktails · 10 min',bc3:'Cocktails',a1:'15 min · €22',ac1:'Museum',a2:'10 min · Free',ac2:'Park',a3name:'Bike Rental',a3:'3 min · €8/h',ac3:'Sport',host:'Your host',medical:'SAMU',fire:'Fire dept',police:'Police',emergency:'112',inv1:'Sleeping',inv1v:'2 double beds + sofa bed',inv2:'Bathroom',inv2v:'Bathtub + shower',inv3:'Kitchen',inv3v:'Dishwasher · Microwave · Nespresso',inv4:'Electronics',inv4v:'55" TV Netflix · Washing machine',reviewLink:'Link',reviewMsg:'Message',reviewMsgVal:'Your review means a lot to us!',ep1:'5 min walk',ep2:'8 min walk',ep3:'10 min walk',ac1t:'Gate',ac1v:'Code: 1234',ac2t:'Key box',ac2v:'Code: 5678',ac3t:'Letterbox',ac3v:'Key on main keyring',svc_ph1:'2 min walk',svc_doc1:'By appointment',svc_lav1:'5 min walk',svc_press1:'8 min walk',svc_atm1:'3 min walk',svc_other:'To be filled by host'})},
-es:{g:'Tu guía',f:'Gracias por tu estancia',wifi:'Wi-Fi',arrivee:'Llegada',depart:'Salida',parking:'Aparcamiento',poubelles:'Basura',reglement:'Normas',restaurants:'Restaurantes',bars:'Bares & Cafés',activites:'Actividades',epiceries:'Supermercado',services:'Servicios',acces:'Códigos',numeros:'Contactos',inventaire:'Equipamiento',avis:'Reseña',galerie:'Galería',histoire:'Historia',manuel:'Manual',cn:'Asistente',cs:'En línea',cw:'Hola — soy tu asistente.',s1:'¿Hora llegada?',s2:'¿Wi-Fi?',s3:'¿Qué hacer?',ph:'Tu pregunta…',cp:'Copiado',lang:'español',call:'Llamar',cat:{pratique:'Alojamiento',decouverte:'Descubrir',infos:'Info'},svcCats:{pharmacie:'💊 Farmacia',medecin:'🩺 Médico',laverie:'🧺 Lavandería',pressing:'👔 Tintorería',banque:'🏧 Cajero',autre:'🔧 Otros'},
+es:{g:'Tu guía',f:'Gracias por tu estancia',wifi:'Wi-Fi',arrivee:'Llegada',depart:'Salida',parking:'Aparcamiento',poubelles:'Basura',reglement:'Normas',restaurants:'Restaurantes',bars:'Bares & Cafés',activites:'Actividades',epiceries:'Supermercado',services:'Servicios',acces:'Códigos',numeros:'Contactos',inventaire:'Equipamiento',avis:'Reseña',galerie:'Galería',histoire:'Historia',manuel:'Manual',cn:'Assistant Mana',cs:'En línea',cw:'Hola — soy tu asistente.',s1:'¿Hora llegada?',s2:'¿Wi-Fi?',s3:'¿Qué hacer?',ph:'Tu pregunta…',cp:'Copiado',lang:'español',call:'Llamar',cat:{pratique:'Alojamiento',decouverte:'Descubrir',infos:'Info'},svcCats:{pharmacie:'💊 Farmacia',medecin:'🩺 Médico',laverie:'🧺 Lavandería',pressing:'👔 Tintorería',banque:'🏧 Cajero',autre:'🔧 Otros'},
 rows:makeRows({wifiNet:'Red',wifiPwd:'Contraseña',checkinTime:'Llegada',checkinVal:'Desde 15:00',addr:'Dirección',seeMap:'Ver mapa',keybox:'Caja llaves',keyboxVal:'Código 1234',apt:'Apartamento',aptVal:'2ª planta',checkoutTime:'Salida',checkoutVal:'Antes 11:00',keys:'Llaves',keysVal:'En la mesa',checklist:'Lista',checklistVal:'Apagar luces\nCerrar ventanas\nBajar calefacción\nVaciar basura\nDejar llaves',parkInfo:'Parking',parkVal:'Plaza privada.',access:'Acceso',accessVal:'Verja automática.',seeParking:'Ver parking',recycling:'Reciclaje',recyclingVal:'Martes y viernes',waste:'Residuos',wasteVal:'Diario excepto domingo',glass:'Vidrio',glassVal:'Final de la calle.',seeLocation:'Ver',smoking:'Fumar',smokingVal:'No fumar',pets:'Animales',petsVal:'No permitidos',parties:'Fiestas',partiesVal:'No permitidas',quiet:'Silencio',quietVal:'Desde 22h',visitors:'Visitas',visitorsVal:'Solo registrados',r1:'3 min',rc1:'Francés',r2:'5 min',rc2:'Italiano',r3:'8 min',rc3:'Japonés',b1:'1 min',bc1:'Café',b2:'2 min',bc2:'Bar',b3:'10 min',bc3:'Cócteles',a1:'15 min · 22€',ac1:'Museo',a2:'10 min · Gratis',ac2:'Parque',a3name:'Bicicletas',a3:'3 min · 8€/h',ac3:'Deporte',host:'Anfitrión',medical:'112',fire:'Bomberos',police:'Policía',emergency:'112',inv1:'Dormitorio',inv1v:'2 camas dobles',inv2:'Baño',inv2v:'Bañera + ducha',inv3:'Cocina',inv3v:'Lavavajillas · Microondas',inv4:'Electrónica',inv4v:'TV Netflix · Lavadora',reviewLink:'Enlace',reviewMsg:'Mensaje',reviewMsgVal:'¡Gracias!',ep1:'5 min',ep2:'8 min',ep3:'10 min',ac1t:'Portal',ac1v:'Código: 1234',ac2t:'Caja llaves',ac2v:'Código: 5678',ac3t:'Buzón',ac3v:'Llave',svc_ph1:'2 min',svc_doc1:'Cita previa',svc_lav1:'5 min',svc_press1:'8 min',svc_atm1:'3 min',svc_other:'A rellenar'})},
-de:{g:'Ihr Reiseführer',f:'Vielen Dank',wifi:'WLAN',arrivee:'Check-in',depart:'Check-out',parking:'Parkplatz',poubelles:'Müll',reglement:'Hausordnung',restaurants:'Restaurants',bars:'Bars & Cafés',activites:'Aktivitäten',epiceries:'Supermarkt',services:'Services',acces:'Zugangscodes',numeros:'Wichtige Nummern',inventaire:'Ausstattung',avis:'Bewertung',galerie:'Galerie',histoire:'Geschichte',manuel:'Geräte',cn:'Assistent',cs:'Online',cw:'Hallo — ich bin Ihr Assistent.',s1:'Check-in?',s2:'WLAN?',s3:'Was gibt es?',ph:'Ihre Frage…',cp:'Kopiert',lang:'Deutsch',call:'Anrufen',cat:{pratique:'Unterkunft',decouverte:'Entdecken',infos:'Infos'},svcCats:{pharmacie:'💊 Apotheke',medecin:'🩺 Arzt',laverie:'🧺 Waschsalon',pressing:'👔 Reinigung',banque:'🏧 Geldautomat',autre:'🔧 Sonstiges'},
+de:{g:'Ihr Reiseführer',f:'Vielen Dank',wifi:'WLAN',arrivee:'Check-in',depart:'Check-out',parking:'Parkplatz',poubelles:'Müll',reglement:'Hausordnung',restaurants:'Restaurants',bars:'Bars & Cafés',activites:'Aktivitäten',epiceries:'Supermarkt',services:'Services',acces:'Zugangscodes',numeros:'Wichtige Nummern',inventaire:'Ausstattung',avis:'Bewertung',galerie:'Galerie',histoire:'Geschichte',manuel:'Geräte',cn:'Assistant Mana',cs:'Online',cw:'Hallo — ich bin Ihr Assistent.',s1:'Check-in?',s2:'WLAN?',s3:'Was gibt es?',ph:'Ihre Frage…',cp:'Kopiert',lang:'Deutsch',call:'Anrufen',cat:{pratique:'Unterkunft',decouverte:'Entdecken',infos:'Infos'},svcCats:{pharmacie:'💊 Apotheke',medecin:'🩺 Arzt',laverie:'🧺 Waschsalon',pressing:'👔 Reinigung',banque:'🏧 Geldautomat',autre:'🔧 Sonstiges'},
 rows:makeRows({wifiNet:'Netzwerk',wifiPwd:'Passwort',checkinTime:'Check-in',checkinVal:'Ab 15:00',addr:'Adresse',seeMap:'Karte',keybox:'Schlüsselbox',keyboxVal:'Code 1234',apt:'Wohnung',aptVal:'2. Etage',checkoutTime:'Abreise',checkoutVal:'Vor 11:00',keys:'Schlüssel',keysVal:'Auf Küchentisch',checklist:'Checkliste',checklistVal:'Licht aus\nFenster schließen\nHeizung runter\nMüll leeren\nSchlüssel abgeben',parkInfo:'Parkplatz',parkVal:'Stellplatz im Innenhof.',access:'Zugang',accessVal:'Tor öffnet automatisch.',seeParking:'Parkplatz',recycling:'Recycling',recyclingVal:'Di. und Fr.',waste:'Restmüll',wasteVal:'Täglich außer Sonntag',glass:'Glas',glassVal:'Ende der Straße.',seeLocation:'Standort',smoking:'Rauchen',smokingVal:'Rauchen verboten',pets:'Haustiere',petsVal:'Nicht gestattet',parties:'Partys',partiesVal:'Nicht gestattet',quiet:'Nachtruhe',quietVal:'Ab 22 Uhr',visitors:'Besucher',visitorsVal:'Nur angemeldete Gäste',r1:'3 Min.',rc1:'Französisch',r2:'5 Min.',rc2:'Italienisch',r3:'8 Min.',rc3:'Japanisch',b1:'1 Min.',bc1:'Café',b2:'2 Min.',bc2:'Bar',b3:'10 Min.',bc3:'Cocktails',a1:'15 Min. · 22€',ac1:'Museum',a2:'10 Min. · Kostenlos',ac2:'Park',a3name:'Fahrradverleih',a3:'3 Min.',ac3:'Sport',host:'Gastgeber',medical:'Notarzt',fire:'Feuerwehr',police:'Polizei',emergency:'112',inv1:'Schlafzimmer',inv1v:'2 Doppelbetten',inv2:'Badezimmer',inv2v:'Badewanne + Dusche',inv3:'Küche',inv3v:'Spülmaschine · Mikrowelle',inv4:'Elektronik',inv4v:'TV Netflix · Waschmaschine',reviewLink:'Link',reviewMsg:'Nachricht',reviewMsgVal:'Vielen Dank!',ep1:'5 Min.',ep2:'8 Min.',ep3:'10 Min.',ac1t:'Tor',ac1v:'Code: 1234',ac2t:'Schlüsselbox',ac2v:'Code: 5678',ac3t:'Briefkasten',ac3v:'Schlüssel',svc_ph1:'2 Min.',svc_doc1:'Termin',svc_lav1:'5 Min.',svc_press1:'8 Min.',svc_atm1:'3 Min.',svc_other:'Vom Gastgeber ausfüllen'})},
-it:{g:'La vostra guida',f:'Grazie per il soggiorno',wifi:'Wi-Fi',arrivee:'Check-in',depart:'Check-out',parking:'Parcheggio',poubelles:'Rifiuti',reglement:'Regolamento',restaurants:'Ristoranti',bars:'Bar & Caffè',activites:'Attività',epiceries:'Supermercato',services:'Servizi',acces:'Codici',numeros:'Numeri utili',inventaire:'Dotazioni',avis:'Recensione',galerie:'Galleria',histoire:'La Nostra Storia',manuel:'Manuale',cn:'Assistente',cs:'Online',cw:'Buongiorno — sono il vostro assistente.',s1:'Orario arrivo?',s2:'Wi-Fi?',s3:'Cosa fare?',ph:'La vostra domanda…',cp:'Copiato',lang:'italiano',call:'Chiama',cat:{pratique:'Alloggio',decouverte:'Scoprire',infos:'Info'},svcCats:{pharmacie:'💊 Farmacia',medecin:'🩺 Medico',laverie:'🧺 Lavanderia',pressing:'👔 Tintoria',banque:'🏧 Bancomat',autre:'🔧 Altri'},
+it:{g:'La vostra guida',f:'Grazie per il soggiorno',wifi:'Wi-Fi',arrivee:'Check-in',depart:'Check-out',parking:'Parcheggio',poubelles:'Rifiuti',reglement:'Regolamento',restaurants:'Ristoranti',bars:'Bar & Caffè',activites:'Attività',epiceries:'Supermercato',services:'Servizi',acces:'Codici',numeros:'Numeri utili',inventaire:'Dotazioni',avis:'Recensione',galerie:'Galleria',histoire:'La Nostra Storia',manuel:'Manuale',cn:'Assistant Mana',cs:'Online',cw:'Buongiorno — sono il vostro assistente.',s1:'Orario arrivo?',s2:'Wi-Fi?',s3:'Cosa fare?',ph:'La vostra domanda…',cp:'Copiato',lang:'italiano',call:'Chiama',cat:{pratique:'Alloggio',decouverte:'Scoprire',infos:'Info'},svcCats:{pharmacie:'💊 Farmacia',medecin:'🩺 Medico',laverie:'🧺 Lavanderia',pressing:'👔 Tintoria',banque:'🏧 Bancomat',autre:'🔧 Altri'},
 rows:makeRows({wifiNet:'Rete',wifiPwd:'Password',checkinTime:'Arrivo',checkinVal:'Dalle 15:00',addr:'Indirizzo',seeMap:'Mappa',keybox:'Cassetta chiavi',keyboxVal:'Codice 1234',apt:'Appartamento',aptVal:'2° piano',checkoutTime:'Partenza',checkoutVal:'Prima delle 11:00',keys:'Chiavi',keysVal:'Sul tavolo',checklist:'Lista',checklistVal:'Spegnere luci\nChiudere finestre\nRiscaldamento basso\nRifiuti\nChiavi',parkInfo:'Parcheggio',parkVal:'Posto nel cortile.',access:'Accesso',accessVal:'Cancello automatico.',seeParking:'Parcheggio',recycling:'Differenziata',recyclingVal:'Martedì e venerdì',waste:'Indifferenziata',wasteVal:'Ogni giorno',glass:'Vetro',glassVal:'In fondo alla strada.',seeLocation:'Posizione',smoking:'Fumo',smokingVal:'Vietato fumare',pets:'Animali',petsVal:'Non ammessi',parties:'Feste',partiesVal:'Non ammesse',quiet:'Silenzio',quietVal:'Dopo le 22:00',visitors:'Visitatori',visitorsVal:'Solo ospiti registrati',r1:'3 min',rc1:'Francese',r2:'5 min',rc2:'Italiano',r3:'8 min',rc3:'Giapponese',b1:'1 min',bc1:'Caffè',b2:'2 min',bc2:'Bar',b3:'10 min',bc3:'Cocktail',a1:'15 min · 22€',ac1:'Museo',a2:'10 min · Gratuito',ac2:'Parco',a3name:'Noleggio bici',a3:'3 min · 8€/h',ac3:'Sport',host:'Host',medical:'118',fire:'115',police:'113',emergency:'112',inv1:'Letti',inv1v:'2 matrimoniali',inv2:'Bagno',inv2v:'Vasca + doccia',inv3:'Cucina',inv3v:'Lavastoviglie · Microonde',inv4:'Elettronica',inv4v:'TV Netflix · Lavatrice',reviewLink:'Link',reviewMsg:'Messaggio',reviewMsgVal:'Grazie!',ep1:'5 min',ep2:'8 min',ep3:'10 min',ac1t:'Cancello',ac1v:'Codice: 1234',ac2t:'Cassetta chiavi',ac2v:'Codice: 5678',ac3t:'Cassetta postale',ac3v:'Chiave',svc_ph1:'2 min',svc_doc1:'Appuntamento',svc_lav1:'5 min',svc_press1:'8 min',svc_atm1:'3 min',svc_other:'Da compilare'})},
-nl:{g:'Uw gids',f:'Bedankt voor uw verblijf',wifi:'Wi-Fi',arrivee:'Aankomst',depart:'Vertrek',parking:'Parkeren',poubelles:'Afval',reglement:'Huisregels',restaurants:'Restaurants',bars:'Bars & Cafés',activites:'Activiteiten',epiceries:'Supermarkt',services:'Diensten',acces:'Toegangscodes',numeros:'Nuttige nummers',inventaire:'Voorzieningen',avis:'Beoordeling',galerie:'Galerij',histoire:'Geschiedenis',manuel:'Handleiding',cn:'Assistent',cs:'Online',cw:'Hallo — ik ben uw assistent.',s1:'Aankomsttijd?',s2:'Wi-Fi?',s3:'Wat te doen?',ph:'Uw vraag…',cp:'Gekopieerd',lang:'Nederlands',call:'Bellen',cat:{pratique:'Verblijf',decouverte:'Ontdekken',infos:'Info'},svcCats:{pharmacie:'💊 Apotheek',medecin:'🩺 Arts',laverie:'🧺 Wasserette',pressing:'👔 Stomerij',banque:'🏧 Geldautomaat',autre:'🔧 Overige'},
+nl:{g:'Uw gids',f:'Bedankt voor uw verblijf',wifi:'Wi-Fi',arrivee:'Aankomst',depart:'Vertrek',parking:'Parkeren',poubelles:'Afval',reglement:'Huisregels',restaurants:'Restaurants',bars:'Bars & Cafés',activites:'Activiteiten',epiceries:'Supermarkt',services:'Diensten',acces:'Toegangscodes',numeros:'Nuttige nummers',inventaire:'Voorzieningen',avis:'Beoordeling',galerie:'Galerij',histoire:'Geschiedenis',manuel:'Handleiding',cn:'Assistant Mana',cs:'Online',cw:'Hallo — ik ben uw assistent.',s1:'Aankomsttijd?',s2:'Wi-Fi?',s3:'Wat te doen?',ph:'Uw vraag…',cp:'Gekopieerd',lang:'Nederlands',call:'Bellen',cat:{pratique:'Verblijf',decouverte:'Ontdekken',infos:'Info'},svcCats:{pharmacie:'💊 Apotheek',medecin:'🩺 Arts',laverie:'🧺 Wasserette',pressing:'👔 Stomerij',banque:'🏧 Geldautomaat',autre:'🔧 Overige'},
 rows:makeRows({wifiNet:'Netwerk',wifiPwd:'Wachtwoord',checkinTime:'Aankomst',checkinVal:'Vanaf 15:00',addr:'Adres',seeMap:'Kaart',keybox:'Sleutelkluisje',keyboxVal:'Code 1234',apt:'Appartement',aptVal:'2e verdieping',checkoutTime:'Vertrek',checkoutVal:'Voor 11:00',keys:'Sleutels',keysVal:'Op tafel',checklist:'Checklist',checklistVal:'Lichten uit\nRamen sluiten\nVerwarming laag\nAfval\nSleutels',parkInfo:'Parkeren',parkVal:'Vaste parkeerplaats.',access:'Toegang',accessVal:'Hek automatisch.',seeParking:'Parkeerplaats',recycling:'Recycling',recyclingVal:'Di en vr',waste:'Restafval',wasteVal:'Dagelijks',glass:'Glas',glassVal:'Einde straat.',seeLocation:'Locatie',smoking:'Roken',smokingVal:'Verboden',pets:'Huisdieren',petsVal:'Niet toegestaan',parties:'Feestjes',partiesVal:'Niet toegestaan',quiet:'Nachtrust',quietVal:'Na 22:00',visitors:'Bezoekers',visitorsVal:'Geregistreerde gasten',r1:'3 min',rc1:'Frans',r2:'5 min',rc2:'Italiaans',r3:'8 min',rc3:'Japans',b1:'1 min',bc1:'Café',b2:'2 min',bc2:'Bar',b3:'10 min',bc3:'Cocktails',a1:'15 min · €22',ac1:'Museum',a2:'10 min · Gratis',ac2:'Park',a3name:'Fietsverhuur',a3:'3 min · €8/u',ac3:'Sport',host:'Gastheer',medical:'112',fire:'112',police:'112',emergency:'112',inv1:'Slaapkamer',inv1v:'2 tweepersoonsbedden',inv2:'Badkamer',inv2v:'Bad + douche',inv3:'Keuken',inv3v:'Vaatwasser · Magnetron',inv4:'Elektronica',inv4v:'TV Netflix · Wasmachine',reviewLink:'Link',reviewMsg:'Bericht',reviewMsgVal:'Bedankt!',ep1:'5 min',ep2:'8 min',ep3:'10 min',ac1t:'Poort',ac1v:'Code: 1234',ac2t:'Sleutelkluisje',ac2v:'Code: 5678',ac3t:'Brievenbus',ac3v:'Sleutel',svc_ph1:'2 min',svc_doc1:'Afspraak',svc_lav1:'5 min',svc_press1:'8 min',svc_atm1:'3 min',svc_other:'In te vullen'})}
 };
 
@@ -2017,11 +2059,20 @@ async function sendMsg(){
     (S.ctx?'INFOS SPÉCIALES DU LOGEMENT:\n'+S.ctx+'\n\n':'')+
     memCtx+'\n'+hostCtx+histoireCtx+'\n\n--- DONNÉES DU LOGEMENT ---\n'+ctx;
   try{
-    var aKey=getAnthropicKey();
-    if(!aKey){addBub('ai','⚙️ Clé API Anthropic manquante. Allez dans Admin → Supabase (code 051206) → champ 4.');document.getElementById('typing').classList.remove('on');document.getElementById('csBtn').disabled=false;return;}
-    var res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':aKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:600,system:sys,messages:hist})});
-    if(!res.ok)throw new Error();
-    var data=await res.json();var ans=(data.content&&data.content[0])?data.content[0].text:'—';
+    var aKey=getAnthropicKey()||getGroqKey();
+    if(!aKey){addBub('ai','⚙️ Clé API manquante. Admin → Supabase (code 051206) → champ 4 → colle ta clé Groq (gratuit sur console.groq.com).');document.getElementById('typing').classList.remove('on');document.getElementById('csBtn').disabled=false;return;}
+    var isGroq=aKey.startsWith('gsk_');
+    var res;
+    if(isGroq){
+      var groqMsgs=[];
+      res=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+aKey},body:JSON.stringify({model:'llama-3.3-70b-versatile',max_tokens:600,messages:[{role:'system',content:sys}].concat(hist.map(function(m){return{role:m.role==='assistant'?'assistant':'user',content:m.content};}))})});
+      if(!res.ok)throw new Error(await res.text());
+      var data=await res.json();var ans=data.choices&&data.choices[0]?data.choices[0].message.content:'—';
+    } else {
+      res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':aKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:600,system:sys,messages:hist})});
+      if(!res.ok)throw new Error(await res.text());
+      var data=await res.json();var ans=(data.content&&data.content[0])?data.content[0].text:'—';
+    }
     hist.push({role:'assistant',content:ans});
     document.getElementById('typing').classList.remove('on');
     addBub('ai',ans);
