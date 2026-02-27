@@ -507,8 +507,6 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
         <p style="font-size:10px;color:var(--dust);margin-bottom:12px;line-height:1.5;">Affichés en bas de page et dans la page Avis pour que vos voyageurs vous suivent.</p>
         <div id="socialAdminList"></div>
         <button class="ap-fb" style="width:100%;padding:10px;font-size:9px;letter-spacing:2px;margin-top:6px;" onclick="addSocial()">+ Ajouter un réseau</button>
-        <button class="ap-sv" style="margin-top:8px;" onclick="saveSocials()">Enregistrer les réseaux</button>
-        <div class="ap-ok" id="socialsOk">Réseaux enregistrés ✓</div>
       </div>
 
       <!-- MOT DE PASSE -->
@@ -1142,7 +1140,7 @@ function buildManuelPage(){
 // ═══════════════════════════════════════════════
 var AVIS_PRESETS=[
   {nom:'Google',color:'#fff',bg:'#fff',border:'1px solid #e0e0e0',icon:'<svg viewBox="0 0 24 24" width="22" height="22"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>'},
-  {nom:'Airbnb',color:'#fff',bg:'#FF385C',border:'none',icon:'<svg viewBox="0 0 24 24" width="22" height="22" fill="#fff"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.442 17.24c-.172.538-.482.97-.93 1.289-.448.32-.964.48-1.548.48-.686 0-1.41-.217-2.172-.65a12.81 12.81 0 0 1-2.07-1.607 13.07 13.07 0 0 1-2.076 1.607c-.763.433-1.487.65-2.173.65-.583 0-1.1-.16-1.548-.48-.447-.32-.757-.75-.929-1.29-.252-.792-.19-1.673.186-2.643.249-.655.69-1.455 1.322-2.398.633-.944 1.52-2.05 2.662-3.317l1.556-1.756 1.556 1.756c1.142 1.267 2.029 2.373 2.661 3.317.632.943 1.073 1.743 1.323 2.398.376.97.438 1.851.186 2.644zm-9.254-2.206c-.183.482-.224.9-.123 1.253.065.227.179.4.342.52.163.12.356.18.578.18.348 0 .73-.13 1.144-.388a10.57 10.57 0 0 0 1.318-1.063 19.44 19.44 0 0 1-.872-1.273 14.17 14.17 0 0 1-.712-1.418c-.354.535-.638 1.01-.852 1.424a5.62 5.62 0 0 0-.423.765zm6.624 1.953c.163-.12.277-.293.342-.52.101-.353.06-.77-.123-1.253a5.62 5.62 0 0 0-.423-.765c-.214-.414-.498-.889-.852-1.424a14.17 14.17 0 0 1-.712 1.418 19.44 19.44 0 0 1-.872 1.273c.5.43.934.775 1.318 1.063.414.259.796.388 1.144.388.222 0 .415-.06.578-.18zm-3.312-3.935c.29.54.58 1.03.87 1.469.29-.44.58-.93.87-1.469.29-.54.53-1.04.72-1.5a6.35 6.35 0 0 0-1.59-2.154A6.35 6.35 0 0 0 9.5 13.052c.19.46.43.96.72 1.5h.28z"/></svg>'},
+  {nom:'Airbnb',color:'#fff',bg:'#FF385C',border:'none',icon:'<svg viewBox="0 0 24 24" width="22" height="22" fill="#fff"><path d="M12 2c-.8 0-2.1.9-3.5 2.4C7.2 5.8 6.2 7.2 5.5 8.5c-.5.9-.75 1.7-.8 2.4-.04.44.004.83.11 1.15.16.47.45.84.86 1.11.3.2.64.3 1 .3.42 0 .84-.13 1.25-.4.32-.2.62-.48.9-.83.28-.35.52-.72.7-1.11.19-.39.32-.79.4-1.18.12-.58.11-1.13-.02-1.63-.07-.26-.17-.51-.3-.73.33-.6.74-1.18 1.22-1.74.48-.57 1.02-1.09 1.59-1.54.57.45 1.11.97 1.59 1.54.48.56.89 1.14 1.22 1.74-.13.22-.23.47-.3.73-.13.5-.14 1.05-.02 1.63.08.39.21.79.4 1.18.18.39.42.76.7 1.11.28.35.58.63.9.83.41.27.83.4 1.25.4.36 0 .7-.1 1-.3.41-.27.7-.64.86-1.11.11-.32.15-.71.11-1.15-.05-.7-.35-1.5-.8-2.4-.7-1.3-1.7-2.7-3-4.1C14.1 2.9 12.8 2 12 2zm0 8.97c-.17.34-.4.65-.68.93-.27.27-.57.47-.87.6-.3-.13-.6-.33-.87-.6-.28-.28-.51-.59-.68-.93.17-.34.4-.65.68-.93.27-.27.57-.47.87-.6.3.13.6.33.87.6.28.28.51.59.68.93zm-5.42 5.98c-.53 1.19-.8 2.3-.8 3.31 0 .77.15 1.47.45 2.1.31.64.76 1.17 1.35 1.56.58.38 1.25.58 2 .58.59 0 1.18-.14 1.75-.43.42-.2.82-.49 1.21-.85.39.36.79.65 1.21.85.57.29 1.16.43 1.75.43.75 0 1.42-.2 2-.58.59-.39 1.04-.92 1.35-1.56.3-.63.45-1.33.45-2.1 0-1.01-.27-2.12-.8-3.31-.35-.78-.83-1.6-1.43-2.45-.45-.63-.96-1.26-1.53-1.88-.57.62-1.08 1.25-1.53 1.88-.6.85-1.08 1.67-1.43 2.45z"/></svg>'},
   {nom:'Booking.com',color:'#fff',bg:'#003580',border:'none',icon:'<svg viewBox="0 0 24 24" width="22" height="22" fill="#fff"><text x="3" y="17" font-family="Arial" font-weight="900" font-size="13" fill="#fff">B.</text></svg>'},
   {nom:'TripAdvisor',color:'#fff',bg:'#34E0A1',border:'none',icon:'<svg viewBox="0 0 24 24" width="22" height="22" fill="#00A680"><circle cx="7.5" cy="13.5" r="3" fill="#00A680"/><circle cx="16.5" cy="13.5" r="3" fill="#00A680"/><path d="M12 4C7.58 4 3.9 6.5 2 10.1A5.48 5.48 0 0 1 7.5 8a5.48 5.48 0 0 1 4.5 2.33A5.48 5.48 0 0 1 16.5 8a5.48 5.48 0 0 1 5.5 2.1C20.1 6.5 16.42 4 12 4z" fill="#00A680"/></svg>'},
   {nom:'Gîtes de France',color:'#fff',bg:'#C8322E',border:'none',icon:'<svg viewBox="0 0 24 24" width="22" height="22" fill="#fff"><path d="M12 3L2 9v12h7v-7h6v7h7V9L12 3z"/></svg>'},
@@ -1573,7 +1571,7 @@ var SOCIAL_ICONS={
   'tiktok':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.69a8.27 8.27 0 0 0 4.84 1.56V6.79a4.85 4.85 0 0 1-1.08-.1z"/></svg>',
   'youtube':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29.94 29.94 0 0 0 1 12a29.94 29.94 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29.94 29.94 0 0 0 23 12a29.94 29.94 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="white"/></svg>',
   'pinterest':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.08 3.16 9.44 7.63 11.21-.1-.96-.2-2.44.04-3.49.22-.94 1.46-6.19 1.46-6.19s-.37-.75-.37-1.86c0-1.74 1.01-3.04 2.27-3.04 1.07 0 1.59.8 1.59 1.77 0 1.08-.69 2.69-1.04 4.19-.3 1.25.62 2.27 1.84 2.27 2.21 0 3.7-2.83 3.7-6.18 0-2.55-1.72-4.34-4.18-4.34-2.85 0-4.52 2.13-4.52 4.34 0 .86.33 1.78.74 2.28.08.1.09.19.07.29-.08.3-.25.94-.28 1.07-.04.17-.14.2-.32.12-1.18-.55-1.92-2.28-1.92-3.67 0-2.98 2.17-5.72 6.25-5.72 3.28 0 5.83 2.34 5.83 5.47 0 3.26-2.05 5.88-4.9 5.88-.96 0-1.86-.5-2.17-1.08l-.59 2.2c-.21.82-.79 1.84-1.18 2.47.89.27 1.83.42 2.81.42 6.63 0 12-5.37 12-12S18.63 0 12 0z"/></svg>',
-  'airbnb':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.442 17.24c-.172.538-.482.97-.93 1.289-.448.32-.964.48-1.548.48-.686 0-1.41-.217-2.172-.65a12.81 12.81 0 0 1-2.07-1.607 13.07 13.07 0 0 1-2.076 1.607c-.763.433-1.487.65-2.173.65-.583 0-1.1-.16-1.548-.48-.447-.32-.757-.75-.929-1.29-.252-.792-.19-1.673.186-2.643.249-.655.69-1.455 1.322-2.398.633-.944 1.52-2.05 2.662-3.317l1.556-1.756 1.556 1.756c1.142 1.267 2.029 2.373 2.661 3.317.632.943 1.073 1.743 1.323 2.398.376.97.438 1.851.186 2.644zm-9.254-2.206c-.183.482-.224.9-.123 1.253.065.227.179.4.342.52.163.12.356.18.578.18.348 0 .73-.13 1.144-.388a10.57 10.57 0 0 0 1.318-1.063 19.44 19.44 0 0 1-.872-1.273 14.17 14.17 0 0 1-.712-1.418c-.354.535-.638 1.01-.852 1.424a5.62 5.62 0 0 0-.423.765zm6.624 1.953c.163-.12.277-.293.342-.52.101-.353.06-.77-.123-1.253a5.62 5.62 0 0 0-.423-.765c-.214-.414-.498-.889-.852-1.424a14.17 14.17 0 0 1-.712 1.418 19.44 19.44 0 0 1-.872 1.273c.5.43.934.775 1.318 1.063.414.259.796.388 1.144.388.222 0 .415-.06.578-.18zm-3.312-3.935c.29.54.58 1.03.87 1.469.29-.44.58-.93.87-1.469.29-.54.53-1.04.72-1.5a6.35 6.35 0 0 0-1.59-2.154A6.35 6.35 0 0 0 9.5 13.052c.19.46.43.96.72 1.5h.28z"/></svg>',
+  'airbnb':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c-.8 0-2.1.9-3.5 2.4C7.2 5.8 6.2 7.2 5.5 8.5c-.5.9-.75 1.7-.8 2.4-.04.44.004.83.11 1.15.16.47.45.84.86 1.11.3.2.64.3 1 .3.42 0 .84-.13 1.25-.4.32-.2.62-.48.9-.83.28-.35.52-.72.7-1.11.19-.39.32-.79.4-1.18.12-.58.11-1.13-.02-1.63-.07-.26-.17-.51-.3-.73.33-.6.74-1.18 1.22-1.74.48-.57 1.02-1.09 1.59-1.54.57.45 1.11.97 1.59 1.54.48.56.89 1.14 1.22 1.74-.13.22-.23.47-.3.73-.13.5-.14 1.05-.02 1.63.08.39.21.79.4 1.18.18.39.42.76.7 1.11.28.35.58.63.9.83.41.27.83.4 1.25.4.36 0 .7-.1 1-.3.41-.27.7-.64.86-1.11.11-.32.15-.71.11-1.15-.05-.7-.35-1.5-.8-2.4-.7-1.3-1.7-2.7-3-4.1C14.1 2.9 12.8 2 12 2zm0 8.97c-.17.34-.4.65-.68.93-.27.27-.57.47-.87.6-.3-.13-.6-.33-.87-.6-.28-.28-.51-.59-.68-.93.17-.34.4-.65.68-.93.27-.27.57-.47.87-.6.3.13.6.33.87.6.28.28.51.59.68.93zm-5.42 5.98c-.53 1.19-.8 2.3-.8 3.31 0 .77.15 1.47.45 2.1.31.64.76 1.17 1.35 1.56.58.38 1.25.58 2 .58.59 0 1.18-.14 1.75-.43.42-.2.82-.49 1.21-.85.39.36.79.65 1.21.85.57.29 1.16.43 1.75.43.75 0 1.42-.2 2-.58.59-.39 1.04-.92 1.35-1.56.3-.63.45-1.33.45-2.1 0-1.01-.27-2.12-.8-3.31-.35-.78-.83-1.6-1.43-2.45-.45-.63-.96-1.26-1.53-1.88-.57.62-1.08 1.25-1.53 1.88-.6.85-1.08 1.67-1.43 2.45z"/></svg>',
   'tripadvisor':'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="7.5" cy="13.5" r="3"/><circle cx="16.5" cy="13.5" r="3"/><path d="M12 4C7.58 4 3.9 6.5 2 10.1A5.48 5.48 0 0 1 7.5 8a5.48 5.48 0 0 1 4.5 2.33A5.48 5.48 0 0 1 16.5 8a5.48 5.48 0 0 1 5.5 2.1C20.1 6.5 16.42 4 12 4z"/></svg>',
   'autre':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
 };
@@ -1583,11 +1581,11 @@ var SOCIAL_PRESETS=[
   {id:'tiktok',nom:'TikTok',color:'#000000',gradient:''},
   {id:'youtube',nom:'YouTube',color:'#FF0000',gradient:''},
   {id:'pinterest',nom:'Pinterest',color:'#E60023',gradient:''},
-  {id:'airbnb',nom:'Airbnb',color:'#FF385C',gradient:''},
+  {id:'airbnb',nom:'Airbnb',color:'#FF5A5F',gradient:''},
   {id:'tripadvisor',nom:'TripAdvisor',color:'#00A680',gradient:''},
   {id:'autre',nom:'Autre',color:'#9B7E60',gradient:''},
 ];
-var DEF={pwd:'221081',name:'The House Station',sub:'Bienvenue chez nous',addr:'123 Rue de la Paix, Paris',avatar:'',bg:'',ctx:'',hostName:'',hostPhone:'',hostMsg:'',contacts:[],socials:[],aiName:'',aiWelcome:'',aiPersonality:'',aiAvatar:'',saison:'',saisonMsg:'',mem:JSON.parse(JSON.stringify(DEF_MEM)),places:{},ov:{},gallery:[],histoire:{titre:'',date:'',txt:'',quote:'',img:''},manuel:[],stats:{},avis:{msg:'Votre avis compte beaucoup pour nous — merci pour votre séjour !',liens:[{nom:'Airbnb',url:'https://airbnb.com',color:'#FF5A5F'},{nom:'Google',url:'https://google.com',color:'#4285F4'}]}};
+var DEF={pwd:'221081',name:'The House Station',sub:'Bienvenue chez nous',addr:'123 Rue de la Paix, Paris',avatar:'',bg:'',ctx:'',hostName:'',hostPhone:'',hostMsg:'',contacts:[],socials:[{id:'instagram',nom:'Instagram',url:'https://instagram.com/',color:'#E1306C',gradient:'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)'},{id:'facebook',nom:'Facebook',url:'https://facebook.com/',color:'#1877F2',gradient:''}],aiName:'',aiWelcome:'',aiPersonality:'',aiAvatar:'',saison:'',saisonMsg:'',mem:JSON.parse(JSON.stringify(DEF_MEM)),places:{},ov:{},gallery:[],histoire:{titre:'',date:'',txt:'',quote:'',img:''},manuel:[],stats:{},avis:{msg:'Votre avis compte beaucoup pour nous — merci pour votre séjour !',liens:[{nom:'Airbnb',url:'https://airbnb.com',color:'#FF5A5F'},{nom:'Google',url:'https://google.com',color:'#4285F4'}]}};
 var S={},adm=false,taps=0,tapT=null,lng='fr',hist=[],chatOpen=false,editKey=null,staged={};
 
 // ═══════════════════════════════════════════════
@@ -1662,28 +1660,26 @@ function renderSocialAdminList(){
   var socials=S.socials||[];
   var opts=SOCIAL_PRESETS.map(function(p){return '<option value="'+p.id+'">'+p.nom+'</option>';}).join('');
   var h='';
-  if(!socials.length){
-    h='<div style="text-align:center;padding:14px 0;font-size:11px;color:var(--fog);">Aucun réseau — cliquez + pour ajouter.</div>';
-  }
   socials.forEach(function(s,i){
-    var bg=s.gradient||s.color||'#9B7E60';
+    var col=s.color||'#9B7E60';
     h+='<div style="background:var(--white);border:1px solid var(--border);border-radius:4px;padding:12px;margin-bottom:8px;">';
-    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
     h+='<div style="display:flex;align-items:center;gap:8px;">';
-    h+='<div style="width:36px;height:36px;border-radius:8px;background:'+bg+';display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;" id="socico'+i+'">'+(getSocialIcon(s.id||'autre'))+'</div>';
+    h+='<div style="width:32px;height:32px;border-radius:8px;background:'+col+';display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;" id="socico'+i+'">'+(getSocialIcon(s.id||'autre'))+'</div>';
     h+='<select class="ap-in" style="font-size:11px;padding:5px 8px;" id="soctype'+i+'" onchange="applySocialPreset('+i+',this)">';
-    h+='<option value="">— Choisir —</option>'+opts;
+    h+='<option value="">— Réseau —</option>'+opts;
     h+='</select>';
     h+='</div>';
-    h+='<span style="font-size:10px;color:var(--red);cursor:pointer;padding:4px 10px;border:1px solid rgba(176,80,80,.3);border-radius:2px;white-space:nowrap;" onclick="removeSocial('+i+')">✕ Supprimer</span>';
+    h+='<span style="font-size:10px;color:var(--red);cursor:pointer;padding:3px 8px;border:1px solid rgba(176,80,80,.3);border-radius:2px;" onclick="removeSocial('+i+')">Supprimer</span>';
     h+='</div>';
     h+='<div class="ap-f"><label>Nom affiché</label><input class="ap-in" id="socnom'+i+'" value="'+esc(s.nom||'')+'" placeholder="Ex: @villa.mana"></div>';
-    h+='<div class="ap-f"><label>URL du profil</label><input class="ap-in" id="socurl'+i+'" value="'+esc(s.url||'')+'" placeholder="https://instagram.com/votre_profil"></div>';
-    h+='<input type="hidden" id="soccol'+i+'" value="'+esc(s.color||'#9B7E60')+'">';
+    h+='<div class="ap-f"><label>URL du profil</label><input class="ap-in" id="socurl'+i+'" value="'+esc(s.url||'')+'" placeholder="https://instagram.com/…"></div>';
+    h+='<input type="hidden" id="soccol'+i+'" value="'+esc(col)+'">';
     h+='<input type="hidden" id="socgrad'+i+'" value="'+esc(s.gradient||'')+'">';
     h+='</div>';
   });
   el.innerHTML=h;
+  // Set select values
   socials.forEach(function(s,i){
     var sel=document.getElementById('soctype'+i);
     if(sel&&s.id)sel.value=s.id;
@@ -1705,19 +1701,19 @@ function applySocialPreset(i,sel){
 }
 
 function addSocial(){
-  collectSocials(false);
+  collectSocials();
   if(!S.socials)S.socials=[];
   S.socials.push({id:'',nom:'',url:'',color:'#9B7E60',gradient:''});
   renderSocialAdminList();
 }
 
 function removeSocial(i){
-  collectSocials(false);
+  collectSocials();
   S.socials.splice(i,1);
   renderSocialAdminList();
 }
 
-function collectSocials(filterEmpty){
+function collectSocials(){
   var el=document.getElementById('socialAdminList');if(!el)return;
   var count=el.children.length;
   S.socials=[];
@@ -1727,34 +1723,33 @@ function collectSocials(filterEmpty){
     var url=(document.getElementById('socurl'+i)||{}).value||'';
     var col=(document.getElementById('soccol'+i)||{}).value||'#9B7E60';
     var grad=(document.getElementById('socgrad'+i)||{}).value||'';
-    // Sans filterEmpty, on garde tout (évite que les entrées disparaissent pendant l'édition)
-    if(!filterEmpty||(url||nom))S.socials.push({id:id,nom:nom,url:url,color:col,gradient:grad});
+    if(url)S.socials.push({id:id,nom:nom,url:url,color:col,gradient:grad});
   }
-}
-
-async function saveSocials(){
-  collectSocials(true);
-  // Retirer les entrées sans URL pour le rendu final
-  S.socials=(S.socials||[]).filter(function(s){return s.url;});
-  await save();
-  renderSocialBar();
-  renderSocialAdminList();
-  var ok=document.getElementById('socialsOk');
-  if(ok){ok.style.display='block';setTimeout(function(){ok.style.display='none';},2200);}
-  showToast('Réseaux enregistrés ✓');
 }
 
 function renderSocialBar(){
   var el=document.getElementById('socialBar');if(!el)return;
   var socials=(S.socials||[]).filter(function(s){return s.url&&s.url.trim();});
-  if(!socials.length){el.style.display='none';el.innerHTML='';return;}
-  el.style.display='flex';
-  el.innerHTML=socials.map(function(s){
-    var bg=s.gradient?s.gradient:(s.color||'#9B7E60');
-    var icon=getSocialIcon(s.id||'autre');
-    return '<a href="'+esc(s.url)+'" target="_blank" class="social-btn" style="background:'+bg+';color:#fff;">'
-      +icon+'<span>'+esc(s.nom||s.id||'Nous suivre')+'</span></a>';
-  }).join('');
+  if(!socials.length){el.style.cssText='display:none;';el.innerHTML='';return;}
+  el.style.cssText='display:flex;flex-direction:column;padding:16px 16px 8px;';
+  el.innerHTML=
+    '<div style="font-size:8px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--dust);text-align:center;margin-bottom:10px;">Nous suivre</div>'+
+    '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">'+
+    socials.map(function(s){
+      var bg=s.gradient?s.gradient:(s.color||'#9B7E60');
+      var icon=getSocialIcon(s.id||'autre');
+      return '<a href="'+esc(s.url)+'" target="_blank" '+
+        'style="display:flex;align-items:center;gap:9px;flex:1;min-width:120px;max-width:160px;'+
+        'background:'+bg+';color:#fff;border-radius:12px;'+
+        'padding:13px 16px;text-decoration:none;'+
+        'box-shadow:0 4px 14px rgba(0,0,0,0.15);" '+
+        'ontouchstart="this.style.opacity=\'.75\'" '+
+        'ontouchend="this.style.opacity=\'1\'">'+
+        '<span style="width:22px;height:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">'+icon+'</span>'+
+        '<span style="font-size:13px;font-weight:600;letter-spacing:.3px;">'+esc(s.nom||s.id)+'</span>'+
+        '</a>';
+    }).join('')+
+    '</div>';
 }
 
 
@@ -1846,32 +1841,15 @@ function showQrCopyToast(){
   t._timer=setTimeout(function(){t.style.display='none';},3000);
 }
 
-async function downloadQR(){
+function downloadQR(){
   var canvas=document.getElementById('qrCanvas');
   if(!canvas)return;
   var pid=getPropId();
   var propName=(S.name||pid).replace(/[^a-z0-9]/gi,'-').toLowerCase();
-  var dataUrl=canvas.toDataURL('image/png');
-  // Sur mobile : Web Share API pour enregistrer dans la galerie photo
-  if(navigator.share&&/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)){
-    canvas.toBlob(function(blob){
-      var file=new File([blob],'qr-'+propName+'.png',{type:'image/png'});
-      if(navigator.canShare&&navigator.canShare({files:[file]})){
-        navigator.share({files:[file],title:'QR Code — '+(S.name||pid)}).catch(function(){fallbackDownloadQR(dataUrl,propName);});
-      } else {fallbackDownloadQR(dataUrl,propName);}
-    },'image/png');
-  } else {
-    fallbackDownloadQR(dataUrl,propName);
-  }
-}
-
-function fallbackDownloadQR(dataUrl,propName){
   var link=document.createElement('a');
   link.download='qr-'+propName+'.png';
-  link.href=dataUrl;
-  document.body.appendChild(link);
+  link.href=canvas.toDataURL('image/png');
   link.click();
-  document.body.removeChild(link);
 }
 
 function saveQRToGallery(){
@@ -1881,12 +1859,14 @@ function saveQRToGallery(){
   var pid=getPropId();
   var propName=S.name||pid;
   if(!S.gallery)S.gallery=[];
+  // Vérifier si déjà présent (éviter les doublons)
   var existing=S.gallery.findIndex(function(g){return g.isQR&&g.propId===pid;});
-  var item={src:dataUrl,cap:'QR Code — '+propName,isQR:true,propId:pid};
+  var item={url:dataUrl,cap:'QR Code — '+propName,isQR:true,propId:pid};
   if(existing>=0){S.gallery[existing]=item;} else {S.gallery.unshift(item);}
   save().then(function(){
     var t=document.getElementById('qrGalleryToast');
     if(t){t.style.display='block';clearTimeout(t._timer);t._timer=setTimeout(function(){t.style.display='none';},3000);}
+    // Rafraîchir la liste galerie si le panel admin est ouvert
     if(adm)renderGalleryAdminList();
   });
 }
@@ -1946,27 +1926,27 @@ async function compressAllImgs(obj){
     // avatar & bg
     ['avatar','bg'].forEach(function(k){
       if(clone[k]&&clone[k].startsWith('data:')){
-        tasks.push(new Promise(function(res){compressImg(clone[k],800,0.7,function(v){clone[k]=v;res();});}));
+        tasks.push(new Promise(function(res){compressImg(clone[k],400,0.5,function(v){clone[k]=v;res();});}));
       }
     });
     // histoire img
     if(clone.histoire&&clone.histoire.img&&clone.histoire.img.startsWith('data:')){
-      tasks.push(new Promise(function(res){compressImg(clone.histoire.img,1200,0.75,function(v){clone.histoire.img=v;res();});}));
+      tasks.push(new Promise(function(res){compressImg(clone.histoire.img,800,0.6,function(v){clone.histoire.img=v;res();});}));
     }
     // gallery
     (clone.gallery||[]).forEach(function(item,i){
       if(item.src&&item.src.startsWith('data:')){
-        tasks.push(new Promise(function(res){compressImg(item.src,1200,0.75,function(v){clone.gallery[i].src=v;res();});}));
+        tasks.push(new Promise(function(res){compressImg(item.src,800,0.6,function(v){clone.gallery[i].src=v;res();});}));
       }
     });
     // manuel step & item imgs
     (clone.manuel||[]).forEach(function(item,mi){
       if(item.img&&item.img.startsWith('data:')){
-        tasks.push(new Promise(function(res){compressImg(item.img,1200,0.75,function(v){clone.manuel[mi].img=v;res();});}));
+        tasks.push(new Promise(function(res){compressImg(item.img,800,0.6,function(v){clone.manuel[mi].img=v;res();});}));
       }
       (item.steps||[]).forEach(function(step,si){
         if(step.img&&step.img.startsWith('data:')){
-          tasks.push(new Promise(function(res){compressImg(step.img,1200,0.75,function(v){clone.manuel[mi].steps[si].img=v;res();});}));
+          tasks.push(new Promise(function(res){compressImg(step.img,800,0.6,function(v){clone.manuel[mi].steps[si].img=v;res();});}));
         }
       });
     });
@@ -1977,6 +1957,7 @@ async function compressAllImgs(obj){
 async function save(){
   try{
     var compressed=await compressAllImgs(S);
+    // Update S with compressed images
     S.avatar=compressed.avatar;S.bg=compressed.bg;
     if(S.histoire)S.histoire.img=compressed.histoire?compressed.histoire.img:S.histoire.img;
     if(compressed.gallery)S.gallery=compressed.gallery;
@@ -1988,11 +1969,9 @@ async function save(){
       console.error('localStorage quota exceeded',e);
       return;
     }
-    // Supabase en arrière-plan — ne bloque pas l'UI
-    cloudSaveUpsert(S).then(function(ok){
-      if(ok)showSyncBar('☁️ Synchronisé avec Supabase');
-      else if(getSupaUrl())showSyncBar('⚠️ Sync Supabase échouée — données sauvées en local',true);
-    }).catch(function(e){console.warn('Supabase sync failed:',e);});
+    var ok=await cloudSaveUpsert(S);
+    if(ok)showSyncBar('☁️ Synchronisé avec Supabase');
+    else if(getSupaUrl())showSyncBar('⚠️ Sync Supabase échouée — données sauvées en local',true);
   }catch(e){
     console.error('save() error:',e);
     showToast('⚠️ Erreur lors de la sauvegarde');
@@ -2300,8 +2279,7 @@ async function saveAdmin(){
   S.aiPersonality=document.getElementById('apAiPersonality').value||'';
   if(staged.aiAvatar)S.aiAvatar=staged.aiAvatar;
   collectContacts();
-  collectSocials(true);
-  S.socials=(S.socials||[]).filter(function(s){return s.url;});
+  collectSocials();
   S.saison=document.getElementById('apSaison').value||'';
   S.saisonMsg=document.getElementById('apSaisonMsg').value||'';
   // Histoire
@@ -2715,17 +2693,18 @@ function sendSug(btn){document.getElementById('ci').value=btn.textContent;sendMs
 // INIT
 // ═══════════════════════════════════════════════
 async function init(){
-  setTimeout(function(){var ov=document.getElementById('loadOv');if(ov)ov.classList.add('gone');},4000);
+  // Safety: always hide the loading overlay after 6s max
+  var safetyTimer=setTimeout(function(){
+    var ov=document.getElementById('loadOv');if(ov)ov.classList.add('gone');
+  },6000);
   try{
     await load();
     render();
     loadWeather();
     updateChatHostBar();
-  }catch(e){
-    console.error('Init error:',e);
-  }finally{
-    var ov=document.getElementById('loadOv');if(ov)ov.classList.add('gone');
-  }
+  }catch(e){console.error('Init error:',e);}
+  clearTimeout(safetyTimer);
+  document.getElementById('loadOv').classList.add('gone');
 }
 init();
 </script>
@@ -2757,10 +2736,9 @@ init();
           <div style="font-size:9px;color:var(--dust);text-align:center;" id="qrPropLabel"></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
             <button onclick="downloadQR()" style="background:var(--stone);color:#fff;border:none;border-radius:2px;padding:8px 14px;font-size:8px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit;">⬇ Télécharger</button>
-            <button onclick="saveQRToGallery()" style="background:var(--white);color:var(--stone);border:1px solid var(--border2);border-radius:2px;padding:8px 14px;font-size:8px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit;">💾 App galerie</button>
+            <button onclick="saveQRToGallery()" style="background:var(--white);color:var(--stone);border:1px solid var(--border2);border-radius:2px;padding:8px 14px;font-size:8px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit;">📷 Galerie</button>
           </div>
-          <div style="font-size:9px;color:var(--dust);text-align:center;line-height:1.5;padding:0 10px;">📱 Sur mobile : "Télécharger" ouvre le partage natif pour enregistrer dans vos photos</div>
-          <div id="qrGalleryToast" style="display:none;color:#2d8a4e;font-size:10px;font-weight:600;letter-spacing:.5px;">✓ QR Code ajouté à la galerie de l'app</div>
+          <div id="qrGalleryToast" style="display:none;color:#2d8a4e;font-size:10px;font-weight:600;letter-spacing:.5px;">✓ QR Code ajouté à la galerie</div>
         </div>
       </div>
       <button onclick="document.getElementById('qrPanel').style.display='none'" style="width:100%;background:none;border:1px solid var(--border2);border-radius:2px;padding:9px;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--dust);cursor:pointer;font-family:inherit;">Fermer</button>
