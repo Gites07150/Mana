@@ -1663,21 +1663,21 @@ function renderSocialAdminList(){
   var opts=SOCIAL_PRESETS.map(function(p){return '<option value="'+p.id+'">'+p.nom+'</option>';}).join('');
   var h='';
   if(!socials.length){
-    h='<div style="text-align:center;padding:16px 0;font-size:11px;color:var(--fog);">Aucun réseau configuré. Cliquez + pour en ajouter.</div>';
+    h='<div style="text-align:center;padding:14px 0;font-size:11px;color:var(--fog);">Aucun réseau — cliquez + pour ajouter.</div>';
   }
   socials.forEach(function(s,i){
-    var col=s.gradient||s.color||'#9B7E60';
+    var bg=s.gradient||s.color||'#9B7E60';
     h+='<div style="background:var(--white);border:1px solid var(--border);border-radius:4px;padding:12px;margin-bottom:8px;">';
     h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
     h+='<div style="display:flex;align-items:center;gap:8px;">';
-    h+='<div style="width:36px;height:36px;border-radius:8px;background:'+col+';display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;" id="socico'+i+'">'+(getSocialIcon(s.id||'autre'))+'</div>';
+    h+='<div style="width:36px;height:36px;border-radius:8px;background:'+bg+';display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;" id="socico'+i+'">'+(getSocialIcon(s.id||'autre'))+'</div>';
     h+='<select class="ap-in" style="font-size:11px;padding:5px 8px;" id="soctype'+i+'" onchange="applySocialPreset('+i+',this)">';
-    h+='<option value="">— Choisir le réseau —</option>'+opts;
+    h+='<option value="">— Choisir —</option>'+opts;
     h+='</select>';
     h+='</div>';
     h+='<span style="font-size:10px;color:var(--red);cursor:pointer;padding:4px 10px;border:1px solid rgba(176,80,80,.3);border-radius:2px;white-space:nowrap;" onclick="removeSocial('+i+')">✕ Supprimer</span>';
     h+='</div>';
-    h+='<div class="ap-f"><label>Nom affiché (ex: @villa.mana)</label><input class="ap-in" id="socnom'+i+'" value="'+esc(s.nom||'')+'" placeholder="@villa.mana ou Instagram…"></div>';
+    h+='<div class="ap-f"><label>Nom affiché</label><input class="ap-in" id="socnom'+i+'" value="'+esc(s.nom||'')+'" placeholder="Ex: @villa.mana"></div>';
     h+='<div class="ap-f"><label>URL du profil</label><input class="ap-in" id="socurl'+i+'" value="'+esc(s.url||'')+'" placeholder="https://instagram.com/votre_profil"></div>';
     h+='<input type="hidden" id="soccol'+i+'" value="'+esc(s.color||'#9B7E60')+'">';
     h+='<input type="hidden" id="socgrad'+i+'" value="'+esc(s.gradient||'')+'">';
@@ -1688,16 +1688,6 @@ function renderSocialAdminList(){
     var sel=document.getElementById('soctype'+i);
     if(sel&&s.id)sel.value=s.id;
   });
-}
-
-async function saveSocials(){
-  collectSocials(true); // filtre les entrées sans nom ni URL
-  await save();
-  renderSocialBar();
-  renderSocialAdminList();
-  var ok=document.getElementById('socialsOk');
-  if(ok){ok.style.display='block';setTimeout(function(){ok.style.display='none';},2200);}
-  showToast('Réseaux enregistrés ✓');
 }
 
 function applySocialPreset(i,sel){
@@ -1737,16 +1727,21 @@ function collectSocials(filterEmpty){
     var url=(document.getElementById('socurl'+i)||{}).value||'';
     var col=(document.getElementById('soccol'+i)||{}).value||'#9B7E60';
     var grad=(document.getElementById('socgrad'+i)||{}).value||'';
-    // On garde toutes les entrées en cours d'édition; on filtre vides seulement à la sauvegarde finale
-    if(!filterEmpty || url || nom)S.socials.push({id:id,nom:nom,url:url,color:col,gradient:grad});
+    // Sans filterEmpty, on garde tout (évite que les entrées disparaissent pendant l'édition)
+    if(!filterEmpty||(url||nom))S.socials.push({id:id,nom:nom,url:url,color:col,gradient:grad});
   }
 }
 
-function addSocialAndKeep(){
-  collectSocials(false);
-  if(!S.socials)S.socials=[];
-  S.socials.push({id:'',nom:'',url:'',color:'#9B7E60',gradient:''});
+async function saveSocials(){
+  collectSocials(true);
+  // Retirer les entrées sans URL pour le rendu final
+  S.socials=(S.socials||[]).filter(function(s){return s.url;});
+  await save();
+  renderSocialBar();
   renderSocialAdminList();
+  var ok=document.getElementById('socialsOk');
+  if(ok){ok.style.display='block';setTimeout(function(){ok.style.display='none';},2200);}
+  showToast('Réseaux enregistrés ✓');
 }
 
 function renderSocialBar(){
@@ -1967,7 +1962,6 @@ async function compressAllImgs(obj){
 async function save(){
   try{
     var compressed=await compressAllImgs(S);
-    // Update S with compressed images
     S.avatar=compressed.avatar;S.bg=compressed.bg;
     if(S.histoire)S.histoire.img=compressed.histoire?compressed.histoire.img:S.histoire.img;
     if(compressed.gallery)S.gallery=compressed.gallery;
@@ -1979,9 +1973,11 @@ async function save(){
       console.error('localStorage quota exceeded',e);
       return;
     }
-    var ok=await cloudSaveUpsert(S);
-    if(ok)showSyncBar('☁️ Synchronisé avec Supabase');
-    else if(getSupaUrl())showSyncBar('⚠️ Sync Supabase échouée — données sauvées en local',true);
+    // Supabase en arrière-plan — ne bloque pas l'UI
+    cloudSaveUpsert(S).then(function(ok){
+      if(ok)showSyncBar('☁️ Synchronisé avec Supabase');
+      else if(getSupaUrl())showSyncBar('⚠️ Sync Supabase échouée — données sauvées en local',true);
+    }).catch(function(e){console.warn('Supabase sync failed:',e);});
   }catch(e){
     console.error('save() error:',e);
     showToast('⚠️ Erreur lors de la sauvegarde');
@@ -2290,6 +2286,7 @@ async function saveAdmin(){
   if(staged.aiAvatar)S.aiAvatar=staged.aiAvatar;
   collectContacts();
   collectSocials(true);
+  S.socials=(S.socials||[]).filter(function(s){return s.url;});
   S.saison=document.getElementById('apSaison').value||'';
   S.saisonMsg=document.getElementById('apSaisonMsg').value||'';
   // Histoire
@@ -2703,10 +2700,7 @@ function sendSug(btn){document.getElementById('ci').value=btn.textContent;sendMs
 // INIT
 // ═══════════════════════════════════════════════
 async function init(){
-  // Force hide overlay after 5s max, no matter what
-  setTimeout(function(){
-    var ov=document.getElementById('loadOv');if(ov)ov.classList.add('gone');
-  },5000);
+  setTimeout(function(){var ov=document.getElementById('loadOv');if(ov)ov.classList.add('gone');},4000);
   try{
     await load();
     render();
