@@ -1924,8 +1924,8 @@ async function compressAllImgs(obj){
     // avatar & bg
     ['avatar','bg'].forEach(function(k){
       if(clone[k]&&clone[k].startsWith('data:')){
-        if(k==='bg'){tasks.push(new Promise(function(res){compressImg(clone[k],1200,0.85,function(v){clone[k]=v;res();});}));}
-        else{tasks.push(new Promise(function(res){compressImg(clone[k],400,0.65,function(v){clone[k]=v;res();});}));}
+        if(k==='bg'){tasks.push(new Promise(function(res){compressImg(clone[k],800,0.72,function(v){clone[k]=v;res();});}));}
+        else{tasks.push(new Promise(function(res){compressImg(clone[k],400,0.60,function(v){clone[k]=v;res();});}));}
       }
     });
     // histoire img
@@ -2350,7 +2350,21 @@ function delFavicon(){
   var fl=document.getElementById('faviconLink');
   if(fl)fl.href='';
 }
-function stageImg(inp,type){var f=inp.files[0];if(!f)return;var r=new FileReader();r.onload=function(e){staged[type]=e.target.result;updatePreview(type,e.target.result);};r.readAsDataURL(f);}
+function stageImg(inp,type){
+  var f=inp.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(e){
+    var raw=e.target.result;
+    // Compress immediately before staging
+    var maxW=type==='bg'?800:400;
+    var qual=type==='bg'?0.72:0.60;
+    compressImg(raw,maxW,qual,function(compressed){
+      staged[type]=compressed;
+      updatePreview(type,compressed);
+    });
+  };
+  r.readAsDataURL(f);
+}
 function deleteImg(type){staged[type]='';updatePreview(type,'');}
 function updatePreview(type,val){
   var isAv=type==='av',isBg=type==='bg',isHist=type==='histoire';
