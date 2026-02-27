@@ -661,12 +661,12 @@ var HARDCODED_SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmF
 var HARDCODED_PROP_ID='Mana';
 var ANTHROPIC_KEY_STORE='ths_anthropic_key';
 var GROQ_KEY_STORE='ths_groq_key';
-function getGroqKey(){return localStorage.getItem(GROQ_KEY_STORE)||(typeof S!=='undefined'&&S.aiKey?S.aiKey:'')||'';}
+function getGroqKey(){return (typeof S!=='undefined'&&S.aiKey?S.aiKey:'')||localStorage.getItem(GROQ_KEY_STORE)||'';}
 
 function getSupaUrl(){return localStorage.getItem(SUPA_URL_KEY)||HARDCODED_SUPA_URL;}
 function getSupaKey(){return localStorage.getItem(SUPA_KEY_KEY)||HARDCODED_SUPA_KEY;}
 function getPropId(){return localStorage.getItem(PROP_ID_KEY)||HARDCODED_PROP_ID;}
-function getAnthropicKey(){return localStorage.getItem(ANTHROPIC_KEY_STORE)||'';}
+function getAnthropicKey(){return (typeof S!=='undefined'&&S.aiKey?S.aiKey:'')||localStorage.getItem(ANTHROPIC_KEY_STORE)||'';}
 
 async function supaFetch(path,method,body){
   var url=getSupaUrl();var key=getSupaKey();
@@ -2735,7 +2735,7 @@ init();
           <div style="font-size:9px;color:var(--dust);text-align:center;" id="qrPropLabel"></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
             <button onclick="downloadQR()" style="background:var(--stone);color:#fff;border:none;border-radius:2px;padding:8px 14px;font-size:8px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit;">⬇ Télécharger</button>
-            <button onclick="saveQRToGallery()" style="background:var(--white);color:var(--stone);border:1px solid var(--border2);border-radius:2px;padding:8px 14px;font-size:8px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit;">📷 Galerie</button>
+
           </div>
           <div id="qrGalleryToast" style="display:none;color:#2d8a4e;font-size:10px;font-weight:600;letter-spacing:.5px;">✓ QR Code ajouté à la galerie</div>
         </div>
