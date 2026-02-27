@@ -588,7 +588,7 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
     </div>
   </div>
   <div class="msgs" id="msgs">
-    <div class="msg ai"><div class="m-av"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg></div><div class="bub" id="chatWelcome">Bonjour — je suis votre assistant pour ce séjour.</div></div>
+    <div class="msg ai"><div class="m-av" id="chatAv"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg></div><div class="bub" id="chatWelcome">Bonjour — je suis votre assistant pour ce séjour.</div></div>
     <div class="typing" id="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
   </div>
   <div class="sugs" id="sugsBar">
@@ -1533,7 +1533,11 @@ function render(){
   var aiWelEl=document.getElementById('chatWelcome');
   if(aiWelEl)aiWelEl.textContent=S.aiWelcome||(L.cw||'Bonjour — je suis votre assistant pour ce séjour. Posez-moi toutes vos questions.');
   var ctAv=document.getElementById('ctAvDiv');
-  if(ctAv){if(S.aiAvatar){ctAv.innerHTML='<img src="'+S.aiAvatar+'" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">';}else{ctAv.innerHTML='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>';}}
+  var chatAv=document.getElementById('chatAv');
+  var avHtml=S.aiAvatar?'<img src="'+S.aiAvatar+'" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">':'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>';
+  var avSmHtml=S.aiAvatar?'<img src="'+S.aiAvatar+'" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">':'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>';
+  if(ctAv)ctAv.innerHTML=avHtml;
+  if(chatAv)chatAv.innerHTML=avSmHtml;
   var ll=document.getElementById('loadLogo');if(ll)ll.textContent=S.name||'Gîte Mana';
   document.getElementById('pageTitle').textContent=S.tabTitle||S.name||'Gîte Mana';
   if(S.favicon){var fl=document.getElementById('faviconLink');if(fl){fl.href=S.favicon;fl.type='image/png';}}
@@ -1689,7 +1693,7 @@ function fillAdminFields(){
   document.getElementById('apAiWelcome').value=S.aiWelcome||'';
   document.getElementById('apAiPersonality').value=S.aiPersonality||'';
   var prevAi=document.getElementById('prevAiAvatar');
-  if(prevAi){prevAi.src=S.aiAvatar||'';prevAi.style.display=S.aiAvatar?'block':'none';}
+  if(prevAi){if(S.aiAvatar){prevAi.src=S.aiAvatar;prevAi.style.display='block';}else{prevAi.src='';prevAi.style.display='none';}}
   var delAi=document.getElementById('delAiAvatar');if(delAi)delAi.style.display=S.aiAvatar?'inline-flex':'none';
   document.getElementById('apHostName').value=S.hostName||'';
   document.getElementById('apHostPhone').value=S.hostPhone||'';
@@ -2062,7 +2066,8 @@ function toggleChat(){chatOpen=!chatOpen;document.getElementById('chatPanel').cl
 function addBub(role,txt){
   var c=document.getElementById('msgs'),t=document.getElementById('typing');
   var d=document.createElement('div');d.className='msg '+role;
-  var av='<div class="m-av"><svg viewBox="0 0 24 24" style="width:9px;height:9px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg></div>';
+  var avInner=S&&S.aiAvatar?'<img src="'+S.aiAvatar+'" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">':'<svg viewBox="0 0 24 24" style="width:9px;height:9px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>';
+  var av='<div class="m-av" style="'+(S&&S.aiAvatar?'background:none;overflow:hidden;':'')+'">'+avInner+'</div>';
   d.innerHTML=(role==='ai'?av:'')+'<div class="bub">'+txt+'</div>';
   c.insertBefore(d,t);c.scrollTop=c.scrollHeight;
 }
