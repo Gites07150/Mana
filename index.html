@@ -248,6 +248,13 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
 .rte-btn:active{background:var(--cream2);}
 .rte-sep{width:1px;background:var(--border2);margin:2px 3px;height:18px;align-self:center;}
 .rte-ta{border-radius:0 0 2px 2px!important;margin-top:0!important;}
+/* RÉSEAUX SOCIAUX */
+.social-bar{display:flex;gap:10px;padding:18px 16px 8px;justify-content:center;flex-wrap:wrap;}
+.social-btn{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:30px;text-decoration:none;font-size:12px;font-weight:600;letter-spacing:.3px;transition:opacity .15s;border:none;cursor:pointer;font-family:inherit;}
+.social-btn:active{opacity:.75;}
+.social-btn svg{width:18px;height:18px;flex-shrink:0;}
+.social-follow-card{background:var(--white);border:1px solid var(--border);border-radius:4px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;text-decoration:none;transition:background .15s;}
+.social-follow-card:active{background:var(--cream2);}
 </style>
 </head>
 <body>
@@ -284,6 +291,7 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
         <select id="propSelect" style="font-size:8px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border2);background:var(--white);color:var(--stone);padding:3px 6px;border-radius:2px;font-family:inherit;cursor:pointer;" onchange="switchProp(this.value)"></select>
         <button style="font-size:8px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--bark);background:none;color:var(--bark);padding:3px 8px;border-radius:2px;font-family:inherit;cursor:pointer;" onclick="addProp()">+ Logement</button>
         <button style="font-size:8px;letter-spacing:1px;text-transform:uppercase;border:1px solid rgba(176,80,80,.4);background:none;color:var(--red);padding:3px 8px;border-radius:2px;font-family:inherit;cursor:pointer;" onclick="deleteProp()">✕</button>
+        <button style="font-size:8px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border2);background:none;color:var(--stone);padding:3px 8px;border-radius:2px;font-family:inherit;cursor:pointer;" onclick="openQrPanel()">🔗 Lien & QR</button>
       </div>
       <div class="ab-btns">
         <button class="ab-save" onclick="saveAdmin()">Enregistrer</button>
@@ -457,10 +465,10 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
       </div>
 
       <div class="ap-sec">
-        <div class="ap-hd">📞 Contact hôte (chatbot)</div>
-        <div class="ap-f"><label>Nom de l'hôte</label><input class="ap-in" id="apHostName" placeholder="Ex: Marie…"></div>
-        <div class="ap-f"><label>Numéro de téléphone</label><input class="ap-in" id="apHostPhone" type="tel" placeholder="+33 6 12 34 56 78"></div>
-        <div class="ap-f"><label>Message personnalisé</label><input class="ap-in" id="apHostMsg" placeholder="Ex: Disponible de 9h à 20h"></div>
+        <div class="ap-hd">📞 Contacts (chatbot &amp; numéros utiles)</div>
+        <p style="font-size:10px;color:var(--dust);margin-bottom:12px;line-height:1.5;">Le premier contact est affiché dans le chatbot. Tous les contacts apparaissent dans "Numéros utiles".</p>
+        <div id="contactsList"></div>
+        <button class="ap-fb" style="width:100%;padding:10px;font-size:9px;letter-spacing:2px;margin-top:6px;" onclick="addContact()">+ Ajouter un contact</button>
       </div>
 
       <!-- MÉMOIRE CHATBOT -->
@@ -491,6 +499,14 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
       <div class="ap-sec">
         <div class="ap-hd">📊 Statistiques</div>
         <div id="statsPanel"></div>
+      </div>
+
+      <!-- RÉSEAUX SOCIAUX -->
+      <div class="ap-sec">
+        <div class="ap-hd">📱 Réseaux sociaux</div>
+        <p style="font-size:10px;color:var(--dust);margin-bottom:12px;line-height:1.5;">Affichés en bas de page et dans la page Avis pour que vos voyageurs vous suivent.</p>
+        <div id="socialAdminList"></div>
+        <button class="ap-fb" style="width:100%;padding:10px;font-size:9px;letter-spacing:2px;margin-top:6px;" onclick="addSocial()">+ Ajouter un réseau</button>
       </div>
 
       <!-- MOT DE PASSE -->
@@ -559,6 +575,7 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
       </div>
     </div>
 
+    <div id="socialBar" class="social-bar"></div>
     <div class="footer"><div class="footer-line"></div><div class="footer-txt" id="footerTxt">Merci pour votre séjour</div></div>
   </div>
 
@@ -799,15 +816,13 @@ async function saveFaqAnswers(){
   showToast('Reponses enregistrees');
 }
 
-async function deleteFaqQuestion(id){
-  if(!confirm('Supprimer cette question ?'))return;
-  var url=getSupaUrl();var key=getSupaKey();
-  if(url&&key){
-    await fetch(url+'/rest/v1/chat_questions?id=eq.'+id,{method:'DELETE',headers:{'apikey':key,'Authorization':'Bearer '+key}});
-  }
-  _faqAllQuestions=_faqAllQuestions.filter(function(q){return q.id!==id;});
+var _faqPendingDeletes=[];
+function deleteFaqQuestion(id){
+  // Suppression visuelle immédiate — appliquée définitivement au "Enregistrer", annulée au "Annuler"
+  _faqPendingDeletes.push(id);
+  _faqAllQuestions=_faqAllQuestions.filter(function(q){return String(q.id)!==String(id);});
   renderFaqPanel(_faqAllQuestions,_faqTab);
-  showToast('Question supprimee');
+  showToast('Supprimé — annulable avec Annuler');
 }
 
 async function saveManualQA(){
@@ -1124,14 +1139,14 @@ function buildManuelPage(){
 // AVIS
 // ═══════════════════════════════════════════════
 var AVIS_PRESETS=[
-  {nom:'Google',color:'#4285F4'},
-  {nom:'Airbnb',color:'#FF5A5F'},
-  {nom:'Booking.com',color:'#003580'},
-  {nom:'TripAdvisor',color:'#34E0A1'},
-  {nom:'Gîtes de France',color:'#C8322E'},
-  {nom:'Abritel',color:'#F26827'},
-  {nom:'Clévacances',color:'#0076B5'},
-  {nom:'Autre',color:'#9B7E60'}
+  {nom:'Google',color:'#fff',bg:'#fff',border:'1px solid #e0e0e0',icon:'<svg viewBox="0 0 24 24" width="22" height="22"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>'},
+  {nom:'Airbnb',color:'#fff',bg:'#FF5A5F',border:'none',icon:'<svg viewBox="0 0 24 24" width="22" height="22" fill="#fff"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm0 3c2.97 0 5.62 1.3 7.46 3.37l-7.46 9.1L4.54 6.37C6.38 4.3 9.03 3 12 3zm0 18c-3.42 0-6.45-1.61-8.39-4.1L12 7.53l8.39 9.37C18.45 19.39 15.42 21 12 21z"/></svg>'},
+  {nom:'Booking.com',color:'#fff',bg:'#003580',border:'none',icon:'<svg viewBox="0 0 24 24" width="22" height="22" fill="#fff"><text x="3" y="17" font-family="Arial" font-weight="900" font-size="13" fill="#fff">B.</text></svg>'},
+  {nom:'TripAdvisor',color:'#fff',bg:'#34E0A1',border:'none',icon:'<svg viewBox="0 0 24 24" width="22" height="22" fill="#00A680"><circle cx="7.5" cy="13.5" r="3" fill="#00A680"/><circle cx="16.5" cy="13.5" r="3" fill="#00A680"/><path d="M12 4C7.58 4 3.9 6.5 2 10.1A5.48 5.48 0 0 1 7.5 8a5.48 5.48 0 0 1 4.5 2.33A5.48 5.48 0 0 1 16.5 8a5.48 5.48 0 0 1 5.5 2.1C20.1 6.5 16.42 4 12 4z" fill="#00A680"/></svg>'},
+  {nom:'Gîtes de France',color:'#fff',bg:'#C8322E',border:'none',icon:'<svg viewBox="0 0 24 24" width="22" height="22" fill="#fff"><path d="M12 3L2 9v12h7v-7h6v7h7V9L12 3z"/></svg>'},
+  {nom:'Abritel',color:'#fff',bg:'#F26827',border:'none',icon:'<svg viewBox="0 0 24 24" width="22" height="22" fill="#fff"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>'},
+  {nom:'Clévacances',color:'#fff',bg:'#0076B5',border:'none',icon:'<svg viewBox="0 0 24 24" width="22" height="22" fill="#fff"><circle cx="12" cy="12" r="9" stroke="#fff" stroke-width="2" fill="none"/><path d="M8 12a4 4 0 0 1 8 0" stroke="#fff" stroke-width="2" fill="none"/></svg>'},
+  {nom:'Autre',color:'#fff',bg:'#9B7E60',border:'none',icon:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="1" fill="#fff" stroke="none"/></svg>'}
 ];
 
 function buildAvisPage(){
@@ -1148,11 +1163,12 @@ function buildAvisPage(){
   } else {
     liens.forEach(function(l){
       if(!l.url)return;
-      var col=l.color||'var(--stone)';
-      h+='<a href="'+esc(l.url)+'" target="_blank" style="display:flex;align-items:center;gap:12px;background:var(--white);border:1px solid var(--border);border-radius:4px;padding:14px 16px;margin-bottom:8px;text-decoration:none;transition:background .15s;" style="cursor:pointer;">';
-      h+='<div style="width:38px;height:38px;border-radius:8px;background:'+col+';display:flex;align-items:center;justify-content:center;flex-shrink:0;">';
-      h+='<svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;"><polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3 12 2"/></svg>';
-      h+='</div>';
+      var preset=AVIS_PRESETS.find(function(p){return p.nom===l.nom;});
+      var bg=l.bg||(preset?preset.bg||preset.color:'#9B7E60')||'#9B7E60';
+      var border=l.border||(preset?preset.border||'none':'none');
+      var icon=l.customLogo?('<img src="'+l.customLogo+'" style="width:24px;height:24px;object-fit:contain;border-radius:3px;">'):( l.icon||(preset?preset.icon||'':''));
+      h+='<a href="'+esc(l.url)+'" target="_blank" style="display:flex;align-items:center;gap:12px;background:var(--white);border:1px solid var(--border);border-radius:4px;padding:14px 16px;margin-bottom:8px;text-decoration:none;">';
+      h+='<div style="width:44px;height:44px;border-radius:10px;background:'+bg+';border:'+border+';display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+icon+'</div>';
       h+='<div style="flex:1;">';
       h+='<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:var(--stone);">'+esc(l.nom||'Laisser un avis')+'</div>';
       h+='<div style="font-size:9px;color:var(--dust);letter-spacing:1px;text-transform:uppercase;margin-top:1px;">Laisser un avis</div>';
@@ -1161,6 +1177,26 @@ function buildAvisPage(){
       h+='</a>';
     });
   }
+  // Section réseaux sociaux dans la page Avis
+  var socials=S.socials||[];
+  if(socials.length){
+    h+='<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">';
+    h+='<div style="font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--bark);text-align:center;margin-bottom:12px;">Nous suivre</div>';
+    socials.forEach(function(s){
+      if(!s.url)return;
+      var bg=s.gradient?s.gradient:s.color||'#9B7E60';
+      var icon=getSocialIcon(s.id||'autre');
+      h+='<a href="'+esc(s.url)+'" target="_blank" class="social-follow-card">';
+      h+='<div style="width:40px;height:40px;border-radius:10px;background:'+bg+';display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;">'+icon+'</div>';
+      h+='<div style="flex:1;">';
+      h+='<div style="font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--stone);">'+esc(s.nom||s.id||'Nous suivre')+'</div>';
+      h+='<div style="font-size:9px;color:var(--dust);letter-spacing:1px;text-transform:uppercase;margin-top:1px;">Nous suivre</div>';
+      h+='</div>';
+      h+='<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:var(--fog);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>';
+      h+='</a>';
+    });
+    h+='</div>';
+  }
   return h+'</div>';
 }
 
@@ -1168,7 +1204,7 @@ function openEditAvis(){
   editKey='avis';
   var a=S.avis||{msg:'',liens:[]};
   if(!a.liens)a.liens=[];
-  var presetOpts=AVIS_PRESETS.map(function(p){return '<option value="'+p.nom+'|'+p.color+'">'+p.nom+'</option>';}).join('');
+  var presetOpts=AVIS_PRESETS.map(function(p){return '<option value="'+p.nom+'">'+p.nom+'</option>';}).join('');
   var h='<div class="ap-f"><label>Message d\'invitation</label>';
   h+='<div class="rte-wrap">'+rteToolbar('avisMsg')+'<textarea class="ap-ta rte-ta" id="avisMsg" style="min-height:60px;">'+esc(a.msg||'')+'</textarea></div></div>';
   h+='<div style="margin-top:14px;margin-bottom:6px;font-size:8px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--bark);">Liens</div>';
@@ -1183,12 +1219,28 @@ function openEditAvis(){
   document.getElementById('shOv').classList.add('on');
 }
 
+function getAvisPresetIcon(nom){
+  var p=AVIS_PRESETS.find(function(x){return x.nom===nom;});
+  return p?p.icon:'';
+}
+function getAvisPresetBg(nom){
+  var p=AVIS_PRESETS.find(function(x){return x.nom===nom;});
+  return p?(p.bg||p.color||'#9B7E60'):'#9B7E60';
+}
+function getAvisPresetBorder(nom){
+  var p=AVIS_PRESETS.find(function(x){return x.nom===nom;});
+  return p?(p.border||'none'):'none';
+}
+
 function renderAvisLienForm(l,i,presetOpts){
-  var col=l.color||'#9B7E60';
+  var bg=l.bg||getAvisPresetBg(l.nom)||'#9B7E60';
+  var border=l.border||getAvisPresetBorder(l.nom)||'none';
+  var icon=l.customLogo?('<img src="'+l.customLogo+'" style="width:22px;height:22px;object-fit:contain;border-radius:3px;">'):( l.icon||getAvisPresetIcon(l.nom)||'');
+  var isAutre=l.nom==='Autre'||(!AVIS_PRESETS.find(function(p){return p.nom===l.nom;})&&l.nom);
   var h='<div id="avlien'+i+'" style="border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:6px;background:var(--cream);">';
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
   h+='<div style="display:flex;align-items:center;gap:8px;">';
-  h+='<div style="width:28px;height:28px;border-radius:6px;background:'+col+';flex-shrink:0;" id="avcolor'+i+'"></div>';
+  h+='<div style="width:36px;height:36px;border-radius:8px;background:'+bg+';border:'+border+';display:flex;align-items:center;justify-content:center;flex-shrink:0;" id="avico'+i+'">'+icon+'</div>';
   h+='<select class="ap-in" style="font-size:11px;padding:5px 8px;" id="avpreset'+i+'" onchange="applyAvisPreset('+i+',this)">';
   h+='<option value="">— Choisir —</option>'+presetOpts;
   h+='</select>';
@@ -1197,21 +1249,72 @@ function renderAvisLienForm(l,i,presetOpts){
   h+='</div>';
   h+='<div class="ap-f" style="margin-bottom:6px;"><label>Nom affiché</label><input class="ap-in" id="avnom'+i+'" value="'+esc(l.nom||'')+'" placeholder="Ex: Google, Airbnb…"></div>';
   h+='<div class="ap-f"><label>URL</label><input class="ap-in" id="avurl'+i+'" value="'+esc(l.url||'')+'" placeholder="https://…"></div>';
-  h+='<input type="hidden" id="avcolval'+i+'" value="'+esc(col)+'">';
+  // Section logo custom (visible si "Autre" ou nom inconnu)
+  var showLogo=(l.nom==='Autre'||isAutre);
+  h+='<div id="avlogosec'+i+'" style="'+(showLogo?'':'display:none;')+'">';
+  h+='<div class="ap-f"><label>Logo personnalisé (optionnel)</label>';
+  h+='<div style="display:flex;align-items:center;gap:8px;">';
+  if(l.customLogo){h+='<img src="'+l.customLogo+'" id="avlogopreview'+i+'" style="width:32px;height:32px;object-fit:contain;border-radius:4px;border:1px solid var(--border);">';}
+  else{h+='<div id="avlogopreview'+i+'" style="display:none;width:32px;height:32px;object-fit:contain;"></div>';}
+  h+='<button class="ap-fb" style="font-size:9px;padding:5px 10px;" onclick="pickAvisLogo('+i+')">Choisir image</button>';
+  h+='<input type="file" id="avlogoinp'+i+'" style="display:none;" accept="image/*" onchange="loadAvisLogo('+i+',this)">';
+  h+='</div></div></div>';
+  // Couleur de fond custom (si Autre)
+  h+='<div id="avcolsec'+i+'" style="'+(showLogo?'':'display:none;')+'">';
+  h+='<div class="ap-f"><label>Couleur de fond</label><div style="display:flex;align-items:center;gap:8px;"><input type="color" id="avcolpick'+i+'" value="'+esc(bg)+'" style="width:36px;height:28px;border:1px solid var(--border);border-radius:2px;padding:2px;cursor:pointer;" oninput="updateAvisColor('+i+',this.value)"><span style="font-size:10px;color:var(--dust);">Couleur du carré icône</span></div></div></div>';
+  h+='<input type="hidden" id="avcolval'+i+'" value="'+esc(bg)+'">';
+  h+='<input type="hidden" id="avborderval'+i+'" value="'+esc(border)+'">';
+  h+='<input type="hidden" id="aviconval'+i+'" value="'+esc(l.icon||'')+'">';
+  h+='<input type="hidden" id="avcustomlogo'+i+'" value="'+esc(l.customLogo||'')+'">';
   h+='</div>';
   return h;
 }
 
+function pickAvisLogo(i){document.getElementById('avlogoinp'+i).click();}
+function loadAvisLogo(i,inp){
+  var file=inp.files[0];if(!file)return;
+  var rd=new FileReader();
+  rd.onload=function(e){
+    var data=e.target.result;
+    var hidden=document.getElementById('avcustomlogo'+i);
+    if(hidden)hidden.value=data;
+    var prev=document.getElementById('avlogopreview'+i);
+    if(prev){prev.src=data;prev.style.display='block';}
+    var ico=document.getElementById('avico'+i);
+    if(ico)ico.innerHTML='<img src="'+data+'" style="width:22px;height:22px;object-fit:contain;border-radius:3px;">';
+  };
+  rd.readAsDataURL(file);
+}
+function updateAvisColor(i,col){
+  var hidden=document.getElementById('avcolval'+i);if(hidden)hidden.value=col;
+  var ico=document.getElementById('avico'+i);if(ico)ico.style.background=col;
+}
+
 function applyAvisPreset(i,sel){
-  var parts=(sel.value||'').split('|');
-  if(parts.length<2)return;
-  var nom=parts[0],col=parts[1];
+  var nom=sel.value;
+  var preset=AVIS_PRESETS.find(function(p){return p.nom===nom;});
+  if(!preset)return;
   var nomEl=document.getElementById('avnom'+i);
-  var colEl=document.getElementById('avcolor'+i);
   var colVal=document.getElementById('avcolval'+i);
-  if(nomEl&&!nomEl.value)nomEl.value=nom;
-  if(colEl)colEl.style.background=col;
-  if(colVal)colVal.value=col;
+  var borderVal=document.getElementById('avborderval'+i);
+  var iconVal=document.getElementById('aviconval'+i);
+  var icoDiv=document.getElementById('avico'+i);
+  var logoSec=document.getElementById('avlogosec'+i);
+  var colSec=document.getElementById('avcolsec'+i);
+  if(nomEl&&!nomEl.value)nomEl.value=preset.nom;
+  var bg=preset.bg||preset.color||'#9B7E60';
+  var border=preset.border||'none';
+  if(colVal)colVal.value=bg;
+  if(borderVal)borderVal.value=border;
+  if(iconVal)iconVal.value=preset.icon||'';
+  if(icoDiv){icoDiv.style.background=bg;icoDiv.style.border=border;icoDiv.innerHTML=preset.icon||'';}
+  // Afficher/masquer section logo custom
+  var isAutre=preset.nom==='Autre';
+  if(logoSec)logoSec.style.display=isAutre?'':'none';
+  if(colSec)colSec.style.display=isAutre?'':'none';
+  // Mettre à jour color picker
+  var colPick=document.getElementById('avcolpick'+i);
+  if(colPick)colPick.value=bg;
 }
 
 function collectAvisFields(){
@@ -1223,18 +1326,21 @@ function collectAvisFields(){
   var count=list.children.length;
   S.avis.liens=[];
   for(var i=0;i<count;i++){
-    var nom=document.getElementById('avnom'+i);
-    var url=document.getElementById('avurl'+i);
-    var col=document.getElementById('avcolval'+i);
-    if(url&&url.value)S.avis.liens.push({nom:(nom?nom.value:''),url:url.value,color:(col?col.value:'#9B7E60')});
+    var nom=(document.getElementById('avnom'+i)||{}).value||'';
+    var url=(document.getElementById('avurl'+i)||{}).value||'';
+    var col=(document.getElementById('avcolval'+i)||{}).value||'#9B7E60';
+    var border=(document.getElementById('avborderval'+i)||{}).value||'none';
+    var icon=(document.getElementById('aviconval'+i)||{}).value||'';
+    var customLogo=(document.getElementById('avcustomlogo'+i)||{}).value||'';
+    if(url)S.avis.liens.push({nom:nom,url:url,color:col,bg:col,border:border,icon:icon,customLogo:customLogo});
   }
 }
 
 function addAvisLien(){
   collectAvisFields();
   if(!S.avis.liens)S.avis.liens=[];
-  S.avis.liens.push({nom:'',url:'',color:'#9B7E60'});
-  var presetOpts=AVIS_PRESETS.map(function(p){return '<option value="'+p.nom+'|'+p.color+'">'+p.nom+'</option>';}).join('');
+  S.avis.liens.push({nom:'',url:'',color:'#9B7E60',bg:'#9B7E60',border:'none',icon:'',customLogo:''});
+  var presetOpts=AVIS_PRESETS.map(function(p){return '<option value="'+p.nom+'">'+p.nom+'</option>';}).join('');
   var list=document.getElementById('avisLiensList');
   var i=S.avis.liens.length-1;
   var div=document.createElement('div');
@@ -1245,7 +1351,7 @@ function addAvisLien(){
 function removeAvisLien(i){
   collectAvisFields();
   S.avis.liens.splice(i,1);
-  var presetOpts=AVIS_PRESETS.map(function(p){return '<option value="'+p.nom+'|'+p.color+'">'+p.nom+'</option>';}).join('');
+  var presetOpts=AVIS_PRESETS.map(function(p){return '<option value="'+p.nom+'">'+p.nom+'</option>';}).join('');
   var list=document.getElementById('avisLiensList');
   list.innerHTML='';
   S.avis.liens.forEach(function(l,j){list.innerHTML+=renderAvisLienForm(l,j,presetOpts);});
@@ -1459,8 +1565,299 @@ rows:makeRows({wifiNet:'Siec',wifiPwd:'Haslo',checkinTime:'Zameldowanie',checkin
 };
 
 var DEF_MEM={vaisselle:'6 verres, 4 tasses, 8 assiettes, 4 bols',cuisine:'1 poêle, 2 casseroles, 1 wok, couteaux de cuisine',sdb:'2 serviettes par personne (max 4), sèche-cheveux',electro:'Lave-vaisselle, micro-ondes, Nespresso (capsules fournies), grille-pain',literie:'Draps fournis et changés entre chaque séjour',divers:"Fer à repasser, aspirateur, produits ménagers sous l'évier",sup:''};
-var DEF={pwd:'221081',name:'The House Station',sub:'Bienvenue chez nous',addr:'123 Rue de la Paix, Paris',avatar:'',bg:'',ctx:'',hostName:'',hostPhone:'',hostMsg:'',aiName:'',aiWelcome:'',aiPersonality:'',aiAvatar:'',saison:'',saisonMsg:'',mem:JSON.parse(JSON.stringify(DEF_MEM)),places:{},ov:{},gallery:[],histoire:{titre:'',date:'',txt:'',quote:'',img:''},manuel:[],stats:{},avis:{msg:'Votre avis compte beaucoup pour nous — merci pour votre séjour !',liens:[{nom:'Airbnb',url:'https://airbnb.com',color:'#FF5A5F'},{nom:'Google',url:'https://google.com',color:'#4285F4'}]}};
+var SOCIAL_ICONS={
+  'instagram':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
+  'facebook':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a4 4 0 0 0-4 4v3H8v4h3v8h4v-8h3l1-4h-4V6a1 1 0 0 1 1-1h3z"/></svg>',
+  'tiktok':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.69a8.27 8.27 0 0 0 4.84 1.56V6.79a4.85 4.85 0 0 1-1.08-.1z"/></svg>',
+  'youtube':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29.94 29.94 0 0 0 1 12a29.94 29.94 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29.94 29.94 0 0 0 23 12a29.94 29.94 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="white"/></svg>',
+  'pinterest':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.08 3.16 9.44 7.63 11.21-.1-.96-.2-2.44.04-3.49.22-.94 1.46-6.19 1.46-6.19s-.37-.75-.37-1.86c0-1.74 1.01-3.04 2.27-3.04 1.07 0 1.59.8 1.59 1.77 0 1.08-.69 2.69-1.04 4.19-.3 1.25.62 2.27 1.84 2.27 2.21 0 3.7-2.83 3.7-6.18 0-2.55-1.72-4.34-4.18-4.34-2.85 0-4.52 2.13-4.52 4.34 0 .86.33 1.78.74 2.28.08.1.09.19.07.29-.08.3-.25.94-.28 1.07-.04.17-.14.2-.32.12-1.18-.55-1.92-2.28-1.92-3.67 0-2.98 2.17-5.72 6.25-5.72 3.28 0 5.83 2.34 5.83 5.47 0 3.26-2.05 5.88-4.9 5.88-.96 0-1.86-.5-2.17-1.08l-.59 2.2c-.21.82-.79 1.84-1.18 2.47.89.27 1.83.42 2.81.42 6.63 0 12-5.37 12-12S18.63 0 12 0z"/></svg>',
+  'airbnb':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm0 3c2.97 0 5.62 1.3 7.46 3.37l-7.46 9.1L4.54 6.37C6.38 4.3 9.03 3 12 3zm0 18c-3.42 0-6.45-1.61-8.39-4.1L12 7.53l8.39 9.37C18.45 19.39 15.42 21 12 21z"/></svg>',
+  'tripadvisor':'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="7.5" cy="13.5" r="3"/><circle cx="16.5" cy="13.5" r="3"/><path d="M12 4C7.58 4 3.9 6.5 2 10.1A5.48 5.48 0 0 1 7.5 8a5.48 5.48 0 0 1 4.5 2.33A5.48 5.48 0 0 1 16.5 8a5.48 5.48 0 0 1 5.5 2.1C20.1 6.5 16.42 4 12 4z"/></svg>',
+  'autre':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+};
+var SOCIAL_PRESETS=[
+  {id:'instagram',nom:'Instagram',color:'#E1306C',gradient:'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)'},
+  {id:'facebook',nom:'Facebook',color:'#1877F2',gradient:''},
+  {id:'tiktok',nom:'TikTok',color:'#000000',gradient:''},
+  {id:'youtube',nom:'YouTube',color:'#FF0000',gradient:''},
+  {id:'pinterest',nom:'Pinterest',color:'#E60023',gradient:''},
+  {id:'airbnb',nom:'Airbnb',color:'#FF5A5F',gradient:''},
+  {id:'tripadvisor',nom:'TripAdvisor',color:'#00A680',gradient:''},
+  {id:'autre',nom:'Autre',color:'#9B7E60',gradient:''},
+];
+var DEF={pwd:'221081',name:'The House Station',sub:'Bienvenue chez nous',addr:'123 Rue de la Paix, Paris',avatar:'',bg:'',ctx:'',hostName:'',hostPhone:'',hostMsg:'',contacts:[],socials:[],aiName:'',aiWelcome:'',aiPersonality:'',aiAvatar:'',saison:'',saisonMsg:'',mem:JSON.parse(JSON.stringify(DEF_MEM)),places:{},ov:{},gallery:[],histoire:{titre:'',date:'',txt:'',quote:'',img:''},manuel:[],stats:{},avis:{msg:'Votre avis compte beaucoup pour nous — merci pour votre séjour !',liens:[{nom:'Airbnb',url:'https://airbnb.com',color:'#FF5A5F'},{nom:'Google',url:'https://google.com',color:'#4285F4'}]}};
 var S={},adm=false,taps=0,tapT=null,lng='fr',hist=[],chatOpen=false,editKey=null,staged={};
+
+// ═══════════════════════════════════════════════
+// CONTACTS MULTIPLES
+// ═══════════════════════════════════════════════
+function renderContactsList(){
+  var list=document.getElementById('contactsList');if(!list)return;
+  var contacts=S.contacts||[];
+  // Migration : si pas de contacts mais hostName/hostPhone, on migre
+  if(!contacts.length&&S.hostPhone){
+    contacts=[{name:S.hostName||'',phone:S.hostPhone||'',msg:S.hostMsg||''}];
+    S.contacts=contacts;
+  }
+  var h='';
+  contacts.forEach(function(c,i){
+    h+='<div style="background:var(--white);border:1px solid var(--border);border-radius:4px;padding:12px;margin-bottom:8px;">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+    h+='<span style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--bark);">Contact '+(i+1)+(i===0?' (principal)':'')+'</span>';
+    h+='<span style="font-size:10px;color:var(--red);cursor:pointer;padding:3px 8px;border:1px solid rgba(176,80,80,.3);border-radius:2px;" onclick="removeContact('+i+')">Supprimer</span>';
+    h+='</div>';
+    h+='<div class="ap-f"><label>Nom</label><input class="ap-in" id="cname'+i+'" value="'+esc(c.name||'')+'" placeholder="Ex: Marie, Jean…"></div>';
+    h+='<div class="ap-f"><label>Téléphone</label><input class="ap-in" id="cphone'+i+'" type="tel" value="'+esc(c.phone||'')+'" placeholder="+33 6 12 34 56 78"></div>';
+    h+='<div class="ap-f"><label>Disponibilité / rôle</label><input class="ap-in" id="cmsg'+i+'" value="'+esc(c.msg||'')+'" placeholder="Ex: Disponible 9h–20h, Propriétaire…"></div>';
+    h+='</div>';
+  });
+  if(list)list.innerHTML=h;
+}
+
+function addContact(){
+  collectContacts();
+  if(!S.contacts)S.contacts=[];
+  S.contacts.push({name:'',phone:'',msg:''});
+  renderContactsList();
+}
+
+function removeContact(i){
+  collectContacts();
+  S.contacts.splice(i,1);
+  renderContactsList();
+}
+
+function collectContacts(){
+  var list=document.getElementById('contactsList');if(!list)return;
+  var count=list.children.length;
+  S.contacts=[];
+  for(var i=0;i<count;i++){
+    var n=document.getElementById('cname'+i);
+    var p=document.getElementById('cphone'+i);
+    var m=document.getElementById('cmsg'+i);
+    S.contacts.push({name:n?n.value:'',phone:p?p.value:'',msg:m?m.value:''});
+  }
+  // Compatibilité : garder hostName/hostPhone/hostMsg = premier contact
+  if(S.contacts.length>0){
+    S.hostName=S.contacts[0].name||'';
+    S.hostPhone=S.contacts[0].phone||'';
+    S.hostMsg=S.contacts[0].msg||'';
+  } else {
+    S.hostName='';S.hostPhone='';S.hostMsg='';
+  }
+}
+
+
+// ═══════════════════════════════════════════════
+// RÉSEAUX SOCIAUX
+// ═══════════════════════════════════════════════
+function getSocialIcon(id){
+  return SOCIAL_ICONS[id]||SOCIAL_ICONS['autre'];
+}
+
+function renderSocialAdminList(){
+  var el=document.getElementById('socialAdminList');if(!el)return;
+  var socials=S.socials||[];
+  var opts=SOCIAL_PRESETS.map(function(p){return '<option value="'+p.id+'">'+p.nom+'</option>';}).join('');
+  var h='';
+  socials.forEach(function(s,i){
+    var col=s.color||'#9B7E60';
+    h+='<div style="background:var(--white);border:1px solid var(--border);border-radius:4px;padding:12px;margin-bottom:8px;">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+    h+='<div style="display:flex;align-items:center;gap:8px;">';
+    h+='<div style="width:32px;height:32px;border-radius:8px;background:'+col+';display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;" id="socico'+i+'">'+(getSocialIcon(s.id||'autre'))+'</div>';
+    h+='<select class="ap-in" style="font-size:11px;padding:5px 8px;" id="soctype'+i+'" onchange="applySocialPreset('+i+',this)">';
+    h+='<option value="">— Réseau —</option>'+opts;
+    h+='</select>';
+    h+='</div>';
+    h+='<span style="font-size:10px;color:var(--red);cursor:pointer;padding:3px 8px;border:1px solid rgba(176,80,80,.3);border-radius:2px;" onclick="removeSocial('+i+')">Supprimer</span>';
+    h+='</div>';
+    h+='<div class="ap-f"><label>Nom affiché</label><input class="ap-in" id="socnom'+i+'" value="'+esc(s.nom||'')+'" placeholder="Ex: @villa.mana"></div>';
+    h+='<div class="ap-f"><label>URL du profil</label><input class="ap-in" id="socurl'+i+'" value="'+esc(s.url||'')+'" placeholder="https://instagram.com/…"></div>';
+    h+='<input type="hidden" id="soccol'+i+'" value="'+esc(col)+'">';
+    h+='<input type="hidden" id="socgrad'+i+'" value="'+esc(s.gradient||'')+'">';
+    h+='</div>';
+  });
+  el.innerHTML=h;
+  // Set select values
+  socials.forEach(function(s,i){
+    var sel=document.getElementById('soctype'+i);
+    if(sel&&s.id)sel.value=s.id;
+  });
+}
+
+function applySocialPreset(i,sel){
+  var id=sel.value;
+  var preset=SOCIAL_PRESETS.find(function(p){return p.id===id;});
+  if(!preset)return;
+  var nomEl=document.getElementById('socnom'+i);
+  var colEl=document.getElementById('soccol'+i);
+  var gradEl=document.getElementById('socgrad'+i);
+  var icoEl=document.getElementById('socico'+i);
+  if(nomEl&&!nomEl.value)nomEl.value=preset.nom;
+  if(colEl)colEl.value=preset.color;
+  if(gradEl)gradEl.value=preset.gradient||'';
+  if(icoEl){icoEl.style.background=preset.gradient||preset.color;icoEl.innerHTML=getSocialIcon(id);}
+}
+
+function addSocial(){
+  collectSocials();
+  if(!S.socials)S.socials=[];
+  S.socials.push({id:'',nom:'',url:'',color:'#9B7E60',gradient:''});
+  renderSocialAdminList();
+}
+
+function removeSocial(i){
+  collectSocials();
+  S.socials.splice(i,1);
+  renderSocialAdminList();
+}
+
+function collectSocials(){
+  var el=document.getElementById('socialAdminList');if(!el)return;
+  var count=el.children.length;
+  S.socials=[];
+  for(var i=0;i<count;i++){
+    var id=(document.getElementById('soctype'+i)||{}).value||'';
+    var nom=(document.getElementById('socnom'+i)||{}).value||'';
+    var url=(document.getElementById('socurl'+i)||{}).value||'';
+    var col=(document.getElementById('soccol'+i)||{}).value||'#9B7E60';
+    var grad=(document.getElementById('socgrad'+i)||{}).value||'';
+    if(url)S.socials.push({id:id,nom:nom,url:url,color:col,gradient:grad});
+  }
+}
+
+function renderSocialBar(){
+  var el=document.getElementById('socialBar');if(!el)return;
+  var socials=S.socials||[];
+  if(!socials.length){el.style.display='none';return;}
+  el.style.display='flex';
+  el.innerHTML=socials.map(function(s){
+    var bg=s.gradient?s.gradient:s.color||'#9B7E60';
+    var icon=getSocialIcon(s.id||'autre');
+    return '<a href="'+esc(s.url)+'" target="_blank" class="social-btn" style="background:'+bg+';color:#fff;">'
+      +icon+'<span>'+esc(s.nom||s.id||'Nous suivre')+'</span></a>';
+  }).join('');
+}
+
+
+// ═══════════════════════════════════════════════
+// LIEN & QR CODE PAR LOGEMENT
+// ═══════════════════════════════════════════════
+
+// Génère l'URL voyageur unique pour le logement actif
+// Ex: https://monsite.com/index.html?p=villa-mana
+function getPropUrl(){
+  var base=window.location.href.split('?')[0];
+  var pid=getPropId();
+  return base+'?p='+encodeURIComponent(pid);
+}
+
+// Lis le paramètre ?p= au chargement pour switcher de logement
+function readPropFromUrl(){
+  var params=new URLSearchParams(window.location.search);
+  var p=params.get('p');
+  if(p&&p!==getPropId()){
+    // Chercher si ce prop est connu
+    var known=getKnownProps();
+    var found=known.find(function(k){return k.id===p;});
+    if(found){
+      localStorage.setItem(PROP_ID_KEY,p);
+    }
+  }
+}
+
+function openQrPanel(){
+  var url=getPropUrl();
+  var pid=getPropId();
+  var propName=S.name||pid;
+  document.getElementById('qrLinkInput').value=url;
+  document.getElementById('qrPropLabel').textContent=propName+' — '+pid;
+  document.getElementById('qrCopyToast').style.display='none';
+  document.getElementById('qrGalleryToast').style.display='none';
+  document.getElementById('qrPanel').style.display='block';
+  // Générer le QR code
+  generateQR(url);
+}
+
+function generateQR(url){
+  var canvas=document.getElementById('qrCanvas');
+  if(!canvas)return;
+  var size=220;
+  canvas.width=size;canvas.height=size;
+  var ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fff';
+  ctx.fillRect(0,0,size,size);
+  // QR via API externe qrserver (pas de lib nécessaire)
+  var img=new Image();
+  img.crossOrigin='anonymous';
+  img.onload=function(){ctx.drawImage(img,0,0,size,size);};
+  img.onerror=function(){
+    // Fallback si offline
+    ctx.fillStyle='#f0ece4';
+    ctx.fillRect(10,10,size-20,size-20);
+    ctx.fillStyle='#9B7E60';
+    ctx.font='11px monospace';
+    ctx.textAlign='center';
+    ctx.fillText('QR Code',size/2,size/2-6);
+    ctx.font='9px monospace';
+    ctx.fillText('(connexion requise)',size/2,size/2+10);
+  };
+  img.src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(url)+'&bgcolor=ffffff&color=3a3028&margin=10';
+}
+
+function copyPropLink(){
+  var url=document.getElementById('qrLinkInput').value;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(url).then(function(){showQrCopyToast();}).catch(function(){fallbackCopy(url);});
+  } else {fallbackCopy(url);}
+}
+
+function fallbackCopy(text){
+  var ta=document.createElement('textarea');
+  ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');showQrCopyToast();}catch(e){}
+  document.body.removeChild(ta);
+}
+
+function showQrCopyToast(){
+  var t=document.getElementById('qrCopyToast');
+  if(!t)return;
+  t.style.display='block';
+  clearTimeout(t._timer);
+  t._timer=setTimeout(function(){t.style.display='none';},3000);
+}
+
+function downloadQR(){
+  var canvas=document.getElementById('qrCanvas');
+  if(!canvas)return;
+  var pid=getPropId();
+  var propName=(S.name||pid).replace(/[^a-z0-9]/gi,'-').toLowerCase();
+  var link=document.createElement('a');
+  link.download='qr-'+propName+'.png';
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+}
+
+function saveQRToGallery(){
+  var canvas=document.getElementById('qrCanvas');
+  if(!canvas)return;
+  var dataUrl=canvas.toDataURL('image/png');
+  var pid=getPropId();
+  var propName=S.name||pid;
+  if(!S.gallery)S.gallery=[];
+  // Vérifier si déjà présent (éviter les doublons)
+  var existing=S.gallery.findIndex(function(g){return g.isQR&&g.propId===pid;});
+  var item={url:dataUrl,cap:'QR Code — '+propName,isQR:true,propId:pid};
+  if(existing>=0){S.gallery[existing]=item;} else {S.gallery.unshift(item);}
+  save().then(function(){
+    var t=document.getElementById('qrGalleryToast');
+    if(t){t.style.display='block';clearTimeout(t._timer);t._timer=setTimeout(function(){t.style.display='none';},3000);}
+    // Rafraîchir la liste galerie si le panel admin est ouvert
+    if(adm)renderGalleryAdminList();
+  });
+}
 
 // ═══════════════════════════════════════════════
 // LOAD / SAVE
@@ -1491,8 +1888,10 @@ async function load(){
   if(!S.hostName)S.hostName='';
   if(!S.hostPhone)S.hostPhone='';
   if(!S.hostMsg)S.hostMsg='';
+  if(!S.contacts)S.contacts=[];
   if(!S.saison)S.saison='';
   if(!S.saisonMsg)S.saisonMsg='';
+  if(!S.socials)S.socials=[];
 }
 
 function compressImg(dataUrl,maxW,quality,cb){
@@ -1582,7 +1981,7 @@ function refreshPropSelect(){
 async function switchProp(id){
   localStorage.setItem(PROP_ID_KEY,id);
   document.getElementById('apPropId').value=id;
-  await load();render();fillAdminFields();loadWeather();
+  readPropFromUrl();await load();render();fillAdminFields();loadWeather();
 }
 
 async function addProp(){
@@ -1654,6 +2053,7 @@ function render(){
   ['wifi','arrivee','depart','parking','poubelles','reglement','restaurants','bars','activites','epiceries','services','acces','numeros','inventaire','avis','galerie','histoire','manuel'].forEach(function(k){var el=document.getElementById('l_'+k);if(el)el.textContent=L[k]||k;});
   document.getElementById('secLbl').textContent=L.g;
   document.getElementById('footerTxt').textContent=L.f;
+  renderSocialBar();
   document.getElementById('chatName').textContent=L.cn;
   document.getElementById('chatStatus').textContent=L.cs;
   document.getElementById('chatWelcome').textContent=L.cw;
@@ -1672,10 +2072,11 @@ function render(){
 function updateChatHostBar(){
   var bar=document.getElementById('chatHostBar'),btn=document.getElementById('chbBtn'),txt=document.getElementById('chbTxt');
   if(!bar||!btn||!txt)return;
-  if(S.hostPhone){
-    bar.classList.add('on');btn.href='tel:'+S.hostPhone;
-    var name=S.hostName||'votre hôte';
-    txt.textContent=S.hostMsg?name+' — '+S.hostMsg:'Contacter '+name;
+  var c=(S.contacts&&S.contacts.length>0)?S.contacts[0]:{name:S.hostName||'',phone:S.hostPhone||'',msg:S.hostMsg||''};
+  if(c.phone){
+    bar.classList.add('on');btn.href='tel:'+c.phone;
+    var name=c.name||'votre hôte';
+    txt.textContent=c.msg?name+' — '+c.msg:'Contacter '+name;
   } else {bar.classList.remove('on');}
 }
 
@@ -1707,6 +2108,13 @@ function unesc(s){return(s||'').replace(/&amp;/g,'&').replace(/&quot;/g,'"').rep
 function buildPage(key){
   var L=LANGS[lng]||LANGS['fr'],rows=getRows(key);
   if(key==='avis'){return buildAvisPage();}
+  // Injecter les contacts dans numeros
+  if(key==='numeros'){
+    var baseRows=rows.slice();
+    var allContacts=S.contacts&&S.contacts.length>0?S.contacts:[S.hostPhone?{name:S.hostName||'Votre hôte',phone:S.hostPhone||'',msg:S.hostMsg||''}:null].filter(Boolean);
+    var contactRows=allContacts.filter(function(c){return c.phone;}).map(function(c){return {t:c.name||'Votre hôte',v:c.phone,tel:1,sub:c.msg||''};});
+    rows=contactRows.concat(baseRows.filter(function(r){return r.t!==(L.rows.numeros[0]||{}).t;}));
+  }
   if(key==='services'){
     var places=getPlaces(key),cats=L.svcCats||{},bycat={};
     places.forEach(function(r){var c=r.cat||'autre';if(!bycat[c])bycat[c]=[];bycat[c].push(r);});
@@ -1799,9 +2207,7 @@ function fillAdminFields(){
   var prevAi=document.getElementById('prevAiAvatar');
   if(prevAi){if(S.aiAvatar){prevAi.src=S.aiAvatar;prevAi.style.display='block';}else{prevAi.src='';prevAi.style.display='none';}}
   var delAi=document.getElementById('delAiAvatar');if(delAi)delAi.style.display=S.aiAvatar?'inline-flex':'none';
-  document.getElementById('apHostName').value=S.hostName||'';
-  document.getElementById('apHostPhone').value=S.hostPhone||'';
-  document.getElementById('apHostMsg').value=S.hostMsg||'';
+  renderContactsList();
   document.getElementById('apPwd').value='';document.getElementById('apPwd2').value='';
   var sel=document.getElementById('apSaison');if(sel)sel.value=S.saison||'';
   var sm=document.getElementById('apSaisonMsg');if(sm)sm.value=S.saisonMsg||'';
@@ -1827,6 +2233,7 @@ function fillAdminFields(){
   renderManuelAdminList();
   buildFaqPanel();
   var sp=document.getElementById('statsPanel');if(sp)sp.innerHTML=buildStatsHTML();
+  renderSocialAdminList();
 }
 
 function enterAdmin(){
@@ -1839,10 +2246,11 @@ function enterAdmin(){
 
 function exitAdmin(){
   adm=false;staged={};
+  _faqPendingDeletes=[];
   document.getElementById('adminBar').classList.remove('on');
   document.getElementById('adminPanel').classList.remove('on');
   document.getElementById('mainGrid').classList.remove('adm');
-  render();
+  load().then(function(){render();});
 }
 
 async function saveAdmin(){
@@ -1858,9 +2266,8 @@ async function saveAdmin(){
   S.aiWelcome=document.getElementById('apAiWelcome').value||'';
   S.aiPersonality=document.getElementById('apAiPersonality').value||'';
   if(staged.aiAvatar)S.aiAvatar=staged.aiAvatar;
-  S.hostName=document.getElementById('apHostName').value||'';
-  S.hostPhone=document.getElementById('apHostPhone').value||'';
-  S.hostMsg=document.getElementById('apHostMsg').value||'';
+  collectContacts();
+  collectSocials();
   S.saison=document.getElementById('apSaison').value||'';
   S.saisonMsg=document.getElementById('apSaisonMsg').value||'';
   // Histoire
@@ -1891,10 +2298,20 @@ async function saveAdmin(){
   // Save manuel items
   collectManuelFields();
   S.manuel=(S.manuel||[]).filter(function(x){return x.nom;});
+  // Appliquer les suppressions FAQ en attente
+  if(_faqPendingDeletes.length){
+    var faqUrl=getSupaUrl();var faqKey=getSupaKey();
+    if(faqUrl&&faqKey){
+      for(var did of _faqPendingDeletes){
+        try{await fetch(faqUrl+'/rest/v1/chat_questions?id=eq.'+did,{method:'DELETE',headers:{'apikey':faqKey,'Authorization':'Bearer '+faqKey}});}catch(e){}
+      }
+    }
+    _faqPendingDeletes=[];
+  }
   await save();
   addKnownProp(getPropId(),S.name);
   render();showToast('Enregistré ✓');
-  setTimeout(function(){exitAdmin();},400);
+  exitAdmin();
   }catch(e){console.error('saveAdmin error:',e);showToast('⚠️ Erreur: '+e.message);}
 }
 
@@ -2200,7 +2617,11 @@ async function sendMsg(){
   }).join('\n');
   var m=S.mem||{};
   var memCtx='--- INVENTAIRE ---\nVaisselle: '+(m.vaisselle||'')+'\nCuisine: '+(m.cuisine||'')+'\nSdb: '+(m.sdb||'')+'\nElectro: '+(m.electro||'')+'\nLiterie: '+(m.literie||'')+'\nDivers: '+(m.divers||'')+'\nNotes: '+(m.sup||'');
-  var hostCtx=S.hostPhone?('\n--- CONTACT HÔTE ---\nNom: '+(S.hostName||'Hôte')+'\nTéléphone: '+S.hostPhone+(S.hostMsg?'\nDisponibilité: '+S.hostMsg:'')):'';
+  var hostCtx='';
+  var allContacts=S.contacts&&S.contacts.length>0?S.contacts:[S.hostPhone?{name:S.hostName||'',phone:S.hostPhone||'',msg:S.hostMsg||''}:null].filter(Boolean);
+  if(allContacts.length>0){
+    hostCtx='\n--- CONTACTS HÔTE ---\n'+allContacts.map(function(c,i){return (c.name?c.name:'Contact '+(i+1))+': '+c.phone+(c.msg?' ('+c.msg+')':'');}).join('\n');
+  }
   var histoireCtx=S.histoire&&S.histoire.txt?'\n--- HISTOIRE DU LIEU ---\n'+S.histoire.txt:'';
   var phone=S.hostPhone||'';
   var hostName=S.hostName||'les propriétaires';
@@ -2275,5 +2696,43 @@ async function init(){
 }
 init();
 </script>
+<!-- QR CODE PANEL -->
+<div id="qrPanel" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);overflow-y:auto;">
+  <div style="background:var(--cream);max-width:340px;margin:40px auto 40px;border-radius:6px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;">
+    <div style="background:var(--stone);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:9px;letter-spacing:3px;text-transform:uppercase;font-weight:600;">Lien & QR Code</span>
+      <span onclick="document.getElementById('qrPanel').style.display='none'" style="cursor:pointer;font-size:16px;opacity:.7;">✕</span>
+    </div>
+    <div style="padding:20px;">
+      <div style="font-size:10px;color:var(--dust);margin-bottom:16px;line-height:1.6;">
+        Chaque logement a son <strong>lien unique</strong> et son <strong>QR code unique</strong>. Si vous créez un nouveau logement, il aura un lien et un QR différents — entièrement séparés.
+      </div>
+      <!-- Lien -->
+      <div style="margin-bottom:16px;">
+        <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--bark);margin-bottom:6px;">Lien voyageur</div>
+        <div style="display:flex;gap:6px;">
+          <input id="qrLinkInput" readonly style="flex:1;background:var(--white);border:1px solid var(--border);border-radius:2px;padding:8px 10px;font-size:11px;color:var(--stone);font-family:inherit;" value="">
+          <button onclick="copyPropLink()" style="background:var(--stone);color:#fff;border:none;border-radius:2px;padding:8px 12px;font-size:8px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit;white-space:nowrap;">Copier</button>
+        </div>
+        <div id="qrCopyToast" style="display:none;color:#2d8a4e;font-size:10px;font-weight:600;margin-top:6px;letter-spacing:.5px;">✓ Lien copié dans le presse-papier</div>
+      </div>
+      <!-- QR Code -->
+      <div style="margin-bottom:16px;">
+        <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--bark);margin-bottom:10px;">QR Code</div>
+        <div style="background:var(--white);border:1px solid var(--border);border-radius:4px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+          <canvas id="qrCanvas" style="border-radius:4px;"></canvas>
+          <div style="font-size:9px;color:var(--dust);text-align:center;" id="qrPropLabel"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+            <button onclick="downloadQR()" style="background:var(--stone);color:#fff;border:none;border-radius:2px;padding:8px 14px;font-size:8px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit;">⬇ Télécharger</button>
+            <button onclick="saveQRToGallery()" style="background:var(--white);color:var(--stone);border:1px solid var(--border2);border-radius:2px;padding:8px 14px;font-size:8px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit;">📷 Galerie</button>
+          </div>
+          <div id="qrGalleryToast" style="display:none;color:#2d8a4e;font-size:10px;font-weight:600;letter-spacing:.5px;">✓ QR Code ajouté à la galerie</div>
+        </div>
+      </div>
+      <button onclick="document.getElementById('qrPanel').style.display='none'" style="width:100%;background:none;border:1px solid var(--border2);border-radius:2px;padding:9px;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--dust);cursor:pointer;font-family:inherit;">Fermer</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
