@@ -576,20 +576,7 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
     </div>
 
     <div id="socialBar" class="social-bar"></div>
-    <div style="display:flex;gap:10px;padding:0 16px 16px;justify-content:center;">
-      <a href="https://instagram.com/" target="_blank" id="widget-instagram"
-        style="display:flex;align-items:center;gap:9px;flex:1;max-width:160px;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:#fff;border-radius:12px;padding:13px 16px;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,0.15);"
-        ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">
-        <svg viewBox="0 0 24 24" style="width:22px;height:22px;flex-shrink:0;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1" fill="#fff" stroke="none"/></svg>
-        <span style="font-size:13px;font-weight:600;letter-spacing:.3px;">Instagram</span>
-      </a>
-      <a href="https://facebook.com/" target="_blank" id="widget-facebook"
-        style="display:flex;align-items:center;gap:9px;flex:1;max-width:160px;background:#1877F2;color:#fff;border-radius:12px;padding:13px 16px;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,0.15);"
-        ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">
-        <svg viewBox="0 0 24 24" style="width:22px;height:22px;flex-shrink:0;fill:#fff;"><path d="M18 2h-3a4 4 0 0 0-4 4v3H8v4h3v8h4v-8h3l1-4h-4V6a1 1 0 0 1 1-1h3z"/></svg>
-        <span style="font-size:13px;font-weight:600;letter-spacing:.3px;">Facebook</span>
-      </a>
-    </div>
+
     <div class="footer"><div class="footer-line"></div><div class="footer-txt" id="footerTxt">Merci pour votre séjour</div></div>
   </div>
 
@@ -1599,7 +1586,7 @@ var SOCIAL_PRESETS=[
   {id:'tripadvisor',nom:'TripAdvisor',color:'#00A680',gradient:''},
   {id:'autre',nom:'Autre',color:'#9B7E60',gradient:''},
 ];
-var DEF={pwd:'221081',name:'The House Station',sub:'Bienvenue chez nous',addr:'123 Rue de la Paix, Paris',avatar:'',bg:'',ctx:'',hostName:'',hostPhone:'',hostMsg:'',contacts:[],socials:[{id:'instagram',nom:'Instagram',url:'https://instagram.com/',color:'#E1306C',gradient:'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)'},{id:'facebook',nom:'Facebook',url:'https://facebook.com/',color:'#1877F2',gradient:''}],aiName:'',aiWelcome:'',aiPersonality:'',aiAvatar:'',saison:'',saisonMsg:'',mem:JSON.parse(JSON.stringify(DEF_MEM)),places:{},ov:{},gallery:[],histoire:{titre:'',date:'',txt:'',quote:'',img:''},manuel:[],stats:{},avis:{msg:'Votre avis compte beaucoup pour nous — merci pour votre séjour !',liens:[{nom:'Airbnb',url:'https://airbnb.com',color:'#FF5A5F'},{nom:'Google',url:'https://google.com',color:'#4285F4'}]}};
+var DEF={pwd:'221081',name:'The House Station',sub:'Bienvenue chez nous',addr:'123 Rue de la Paix, Paris',avatar:'',bg:'',ctx:'',hostName:'',hostPhone:'',hostMsg:'',contacts:[],socials:[],aiName:'',aiWelcome:'',aiPersonality:'',aiAvatar:'',saison:'',saisonMsg:'',mem:JSON.parse(JSON.stringify(DEF_MEM)),places:{},ov:{},gallery:[],histoire:{titre:'',date:'',txt:'',quote:'',img:''},manuel:[],stats:{},avis:{msg:'Votre avis compte beaucoup pour nous — merci pour votre séjour !',liens:[{nom:'Airbnb',url:'https://airbnb.com',color:'#FF5A5F'},{nom:'Google',url:'https://google.com',color:'#4285F4'}]}};
 var S={},adm=false,taps=0,tapT=null,lng='fr',hist=[],chatOpen=false,editKey=null,staged={};
 
 // ═══════════════════════════════════════════════
@@ -1746,25 +1733,22 @@ function renderSocialBar(){
   var el=document.getElementById('socialBar');if(!el)return;
   var socials=(S.socials||[]).filter(function(s){return s.url&&s.url.trim();});
   if(!socials.length){el.style.cssText='display:none;';el.innerHTML='';return;}
-  el.style.cssText='display:flex;flex-direction:column;padding:16px 16px 8px;';
+  el.style.cssText='display:flex;flex-direction:row;gap:14px;padding:10px 16px 14px;justify-content:center;align-items:center;flex-wrap:wrap;';
   el.innerHTML=
-    '<div style="font-size:8px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--dust);text-align:center;margin-bottom:10px;">Nous suivre</div>'+
-    '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">'+
     socials.map(function(s){
-      var bg=s.gradient?s.gradient:(s.color||'#9B7E60');
+      var col=s.color||'#9B7E60';
       var icon=getSocialIcon(s.id||'autre');
-      return '<a href="'+esc(s.url)+'" target="_blank" '+
-        'style="display:flex;align-items:center;gap:9px;flex:1;min-width:120px;max-width:160px;'+
-        'background:'+bg+';color:#fff;border-radius:12px;'+
-        'padding:13px 16px;text-decoration:none;'+
-        'box-shadow:0 4px 14px rgba(0,0,0,0.15);" '+
-        'ontouchstart="this.style.opacity=\'.75\'" '+
+      var iconHtml=icon.replace(/stroke="currentColor"/g,'stroke="#fff"').replace(/fill="currentColor"/g,'fill="#fff"');
+      return '<a href="'+esc(s.url)+'" target="_blank" title="'+esc(s.nom||s.id)+'" '+
+        'style="display:flex;align-items:center;justify-content:center;'+
+        'width:44px;height:44px;border-radius:50%;'+
+        'background:'+col+';'+
+        'text-decoration:none;transition:opacity .15s;flex-shrink:0;" '+
+        'ontouchstart="this.style.opacity=\'.7\'" '+
         'ontouchend="this.style.opacity=\'1\'">'+
-        '<span style="width:22px;height:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">'+icon+'</span>'+
-        '<span style="font-size:13px;font-weight:600;letter-spacing:.3px;">'+esc(s.nom||s.id)+'</span>'+
+        '<span style="width:22px;height:22px;display:flex;align-items:center;justify-content:center;">'+iconHtml+'</span>'+
         '</a>';
-    }).join('')+
-    '</div>';
+    }).join('');
 }
 
 
