@@ -453,7 +453,17 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
         </div>
         <div class="ap-f"><label>Nom de l'IA</label><input class="ap-in" id="apAiName" placeholder="Ex: Luna, Mana Assistant…"></div>
         <div class="ap-f"><label>Message d'accueil</label><input class="ap-in" id="apAiWelcome" placeholder="Ex: Bonjour ! Je suis votre assistant…"></div>
-        <div class="ap-f"><label>Personnalité / Ton</label><input class="ap-in" id="apAiPersonality" placeholder="Ex: Chaleureux, professionnel, en tutoiement…"></div>
+        <div class="ap-f">
+          <label>Ton de l'IA</label>
+          <select class="ap-in" id="apAiPersonality" style="cursor:pointer;">
+            <option value="">Neutre (défaut)</option>
+            <option value="Chaleureux et amical, tutoiement, ambiance conviviale">😊 Chaleureux & amical (tutoiement)</option>
+            <option value="Professionnel et courtois, vouvoiement, ton hôtelier">🎩 Professionnel & hôtelier (vouvoiement)</option>
+            <option value="Décontracté et cool, tutoiement, style jeune et moderne">😎 Décontracté & cool (tutoiement)</option>
+            <option value="Luxueux et raffiné, vouvoiement, vocabulaire élégant et sophistiqué">✨ Luxueux & raffiné (vouvoiement)</option>
+            <option value="Humoristique et fun, tutoiement, touches d'humour léger">😄 Humoristique & fun (tutoiement)</option>
+          </select>
+        </div>
       </div>
 
       <div class="ap-sec">
@@ -771,6 +781,19 @@ async function saveChatQuestion(question){
       await fetch(url+'/rest/v1/chat_questions',{method:'POST',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key},body:JSON.stringify({property_id:pid,question:question,count:1})});
     }
   }catch(e){console.log('chat question save error:',e);}
+}
+
+async function saveChatAnswer(question, answer){
+  var pid=getPropId();
+  var url=getSupaUrl();var key=getSupaKey();
+  if(!url||!key)return;
+  try{
+    var r=await fetch(url+'/rest/v1/chat_questions?property_id=eq.'+encodeURIComponent(pid)+'&question=eq.'+encodeURIComponent(question),{headers:{'apikey':key,'Authorization':'Bearer '+key}});
+    var existing=await r.json();
+    if(existing&&existing.length>0){
+      await fetch(url+'/rest/v1/chat_questions?id=eq.'+existing[0].id,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key},body:JSON.stringify({answer:answer})});
+    }
+  }catch(e){console.log('saveChatAnswer error:',e);}
 }
 
 async function loadChatQuestions(){
@@ -2202,7 +2225,7 @@ async function sendMsg(){
   var aiName=S.aiName||'Assistant Mana';
   var personality=S.aiPersonality?('Ton et personnalité: '+S.aiPersonality+'. '):'';
   var sys='Tu t\'appelles "'+aiName+'" et tu es l\'assistant virtuel du logement "'+S.name+'" situé à '+S.addr+'. Tu réponds TOUJOURS en '+L.lang+'. '+personality+
-    'RÈGLE ABSOLUE DE CONCISION : Réponds TOUJOURS en 1 à 3 phrases maximum. Jamais plus. Sois direct et précis. '+
+    'RÈGLE DE LONGUEUR : Réponds en 2 à 4 phrases. Ni trop court (donne de vraies infos utiles), ni trop long (pas de pavés). Sois naturel et précis. '+
     'Tu es chaleureux et serviable. '+
     'Tu as accès à toutes les informations du logement ci-dessous — utilise-les pour répondre précisément. '+
     'Si on te demande une quantité (verres, serviettes, etc.), cherche dans l\'inventaire et donne le chiffre exact. '+
@@ -2236,6 +2259,8 @@ async function sendMsg(){
     hist.push({role:'assistant',content:ans});
     document.getElementById('typing').classList.remove('on');
     addBub('ai',ans);
+    // Sauvegarder la réponse IA dans Supabase pour retirer la question des "sans réponse"
+    saveChatAnswer(txt, ans);
     if(S.hostPhone&&(ans.toLowerCase().indexOf('hôte')>=0||ans.toLowerCase().indexOf('host')>=0||ans.toLowerCase().indexOf('contact')>=0||ans.toLowerCase().indexOf('appel')>=0)){
       document.getElementById('chatHostBar').classList.add('on');
     }
