@@ -63,7 +63,7 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
 .adm .tile .e-dot{display:flex;}
 .footer{padding:16px 18px 44px;text-align:center;}
 .footer-line{width:30px;height:1px;background:var(--fog);margin:0 auto 10px;}
-.footer-txt{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--fog);}
+.footer-txt{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--dust);}
 .admin-bar{display:none;background:var(--white);border-bottom:1px solid var(--border);padding:9px 16px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
 .admin-bar.on{display:flex;}
 .ab-lbl{font-size:8px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--bark);display:flex;align-items:center;gap:6px;}
@@ -1182,7 +1182,7 @@ function buildAvisPage(){
   var socials=S.socials||[];
   if(socials.length){
     h+='<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">';
-    h+='<div style="font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--bark);text-align:center;margin-bottom:12px;">Nous suivre</div>';
+    h+='<div style="font-size:14px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--bark);text-align:center;margin-bottom:12px;">Nous suivre</div>';
     socials.forEach(function(s){
       if(!s.url)return;
       var bg=s.gradient?s.gradient:s.color||'#9B7E60';
@@ -1736,17 +1736,16 @@ function renderSocialBar(){
   el.style.cssText='display:flex;flex-direction:row;gap:14px;padding:10px 16px 14px;justify-content:center;align-items:center;flex-wrap:wrap;';
   el.innerHTML=
     socials.map(function(s){
-      var col=s.color||'#9B7E60';
       var icon=getSocialIcon(s.id||'autre');
-      var iconHtml=icon.replace(/stroke="currentColor"/g,'stroke="#fff"').replace(/fill="currentColor"/g,'fill="#fff"');
+      var iconHtml=icon.replace(/stroke="currentColor"/g,'stroke="#9B7E60"').replace(/fill="currentColor"/g,'fill="#9B7E60"');
       return '<a href="'+esc(s.url)+'" target="_blank" title="'+esc(s.nom||s.id)+'" '+
         'style="display:flex;align-items:center;justify-content:center;'+
         'width:44px;height:44px;border-radius:50%;'+
-        'background:'+col+';'+
+        'background:transparent;'+
         'text-decoration:none;transition:opacity .15s;flex-shrink:0;" '+
         'ontouchstart="this.style.opacity=\'.7\'" '+
         'ontouchend="this.style.opacity=\'1\'">'+
-        '<span style="width:22px;height:22px;display:flex;align-items:center;justify-content:center;">'+iconHtml+'</span>'+
+        '<span style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;">'+iconHtml+'</span>'+
         '</a>';
     }).join('');
 }
