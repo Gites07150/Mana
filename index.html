@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title id="pageTitle">Gîte Mana</title>
 <link id="faviconLink" rel="icon" type="image/png" href="">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -509,6 +510,17 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
         <div class="ap-f"><label>Nouveau mot de passe</label><input class="ap-in" id="apPwd" type="password" placeholder="Vide = conserver l'actuel"></div>
         <div class="ap-f"><label>Confirmer</label><input class="ap-in" id="apPwd2" type="password"></div>
       </div>
+      <!-- LIEN VOYAGEUR + QR CODE -->
+      <div class="ap-sec" id="propLinkSection">
+        <div class="ap-hd">🔗 Lien & QR Code voyageur</div>
+        <div style="font-size:10px;color:var(--dust);margin-bottom:10px;line-height:1.6;">Partagez ce lien à vos voyageurs. Il ouvre directement ce logement.</div>
+        <div style="background:var(--white);border:1px solid var(--border2);border-radius:3px;padding:8px 11px;font-size:11px;font-family:monospace;color:var(--stone);word-break:break-all;margin-bottom:10px;" id="propLinkDisplay"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="ap-fb" onclick="copyPropLink()" style="background:var(--stone);color:#fff;border-color:var(--stone);">📋 Copier le lien</button>
+          <button class="ap-fb" onclick="downloadQR()">⬛ Télécharger QR Code</button>
+        </div>
+        <div id="qrContainer" style="margin-top:14px;display:none;"></div>
+      </div>
       <div style="height:8px"></div>
     </div>
 
@@ -727,7 +739,15 @@ async function testSupabase(){
   try{
     var r=await fetch(url+'/rest/v1/properties?limit=1',{headers:{'apikey':key,'Authorization':'Bearer '+key}});
     if(r.ok||r.status===200){
-      localStorage.setItem(SUPA_URL_KEY,url);localStorage.setItem(SUPA_KEY_KEY,key);localStorage.setItem(PROP_ID_KEY,pid);
+      localStorage.setItem(SUPA_URL_KEY,url);localStorage.setItem(SUPA_KEY_KEY,key);
+      // Ne changer l'ID que si le champ a été modifié manuellement (différent de l'ID courant actif)
+      var currentPid=getPropId();
+      if(pid && pid!==currentPid){
+        // Mise à jour de l'ID uniquement si intentionnelle (champ modifié manuellement)
+        // On ne le fait pas automatiquement pour éviter d'écraser le logement actif
+      } else {
+        localStorage.setItem(PROP_ID_KEY,pid);
+      }
       var akey=document.getElementById('apAnthropicKey');if(akey&&akey.value.trim()){var kv=akey.value.trim();localStorage.setItem(ANTHROPIC_KEY_STORE,kv);localStorage.setItem(GROQ_KEY_STORE,kv);S.aiKey=kv;}
       cloudReady=true;updateCloudStatusUI();
       res.style.background='rgba(90,138,106,0.1)';res.style.color='var(--green)';
@@ -1606,9 +1626,54 @@ async function switchProp(id){
   await load();render();fillAdminFields();loadWeather();
 }
 
+function slugify(str){return str.toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
+
+function getPropUrl(){
+  var base=window.location.href.split('?')[0].split('#')[0];
+  return base+'?p='+encodeURIComponent(getPropId());
+}
+
+function updatePropLinkDisplay(){
+  var el=document.getElementById('propLinkDisplay');
+  if(el)el.textContent=getPropUrl();
+}
+
+function copyPropLink(){
+  var url=getPropUrl();
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(function(){showToast('Lien copié ✓');});
+  } else {
+    var t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);
+    showToast('Lien copié ✓');
+  }
+}
+
+function downloadQR(){
+  var url=getPropUrl();
+  var container=document.getElementById('qrContainer');
+  container.style.display='block';
+  container.innerHTML='<div id="qrInner" style="display:inline-block;padding:12px;background:#fff;border-radius:4px;border:1px solid var(--border);"></div>';
+  try{
+    new QRCode(document.getElementById('qrInner'),{text:url,width:160,height:160,colorDark:'#2E2820',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+    setTimeout(function(){
+      var canvas=container.querySelector('canvas');
+      if(canvas){
+        var a=document.createElement('a');
+        a.download='qr-'+getPropId()+'.png';
+        a.href=canvas.toDataURL('image/png');
+        a.click();
+        showToast('QR Code téléchargé ✓');
+      }
+    },300);
+  }catch(e){container.innerHTML='<div style="font-size:10px;color:var(--dust);padding:8px;">Affichage du QR ci-dessus — faites une capture d\'écran.</div>';}
+}
+
 async function addProp(){
   var name=prompt('Nom du nouveau logement :','Appartement 2');if(!name)return;
-  var id='prop'+Date.now();
+  var id=slugify(name)||'prop'+Date.now();
+  // Éviter les doublons d'ID
+  var existing=getKnownProps();
+  if(existing.find(function(p){return p.id===id;})){id=id+'-'+Date.now();}
   localStorage.setItem(PROP_ID_KEY,id);
   S=JSON.parse(JSON.stringify(DEF));S.name=name;
   await save();refreshPropSelect();render();fillAdminFields();
@@ -1829,6 +1894,7 @@ function fillAdminFields(){
   document.getElementById('apPropId').value=getPropId();
   updateCloudStatusUI();
   refreshPropSelect();
+  updatePropLinkDisplay();
   renderGalleryAdminList();
   renderManuelAdminList();
   buildFaqPanel();
@@ -1885,13 +1951,14 @@ async function saveAdmin(){
   S.mem=m;
   var p1=document.getElementById('apPwd').value,p2=document.getElementById('apPwd2').value;
   if(p1&&p1===p2)S.pwd=p1;
-  // Supabase keys
+  // Supabase keys — NE PAS changer PROP_ID_KEY ici, il est géré par switchProp/addProp
   var url=document.getElementById('apSupaUrl').value.trim();
   var key=document.getElementById('apSupaKey').value.trim();
   var pid=document.getElementById('apPropId').value.trim();
   if(url)localStorage.setItem(SUPA_URL_KEY,url);
   if(key)localStorage.setItem(SUPA_KEY_KEY,key);
-  if(pid)localStorage.setItem(PROP_ID_KEY,pid);
+  // Sécurité : on ne change l'ID que si c'est bien celui du logement courant (évite l'écrasement entre logements)
+  if(pid && pid===getPropId())localStorage.setItem(PROP_ID_KEY,pid);
   // Save gallery captions
   var items=S.gallery||[];
   items.forEach(function(item,i){var el=document.getElementById('gcap'+i);if(el)item.cap=el.value;});
@@ -2279,7 +2346,18 @@ function sendSug(btn){document.getElementById('ci').value=btn.textContent;sendMs
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
+function readPropFromUrl(){
+  var params=new URLSearchParams(window.location.search);
+  var p=params.get('p');
+  if(p){
+    localStorage.setItem(PROP_ID_KEY,p);
+    return true;
+  }
+  return false;
+}
+
 async function init(){
+  readPropFromUrl();
   // Safety: always hide the loading overlay after 6s max
   var safetyTimer=setTimeout(function(){
     var ov=document.getElementById('loadOv');if(ov)ov.classList.add('gone');
