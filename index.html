@@ -799,15 +799,12 @@ async function saveFaqAnswers(){
   showToast('Reponses enregistrees');
 }
 
-async function deleteFaqQuestion(id){
-  if(!confirm('Supprimer cette question ?'))return;
-  var url=getSupaUrl();var key=getSupaKey();
-  if(url&&key){
-    await fetch(url+'/rest/v1/chat_questions?id=eq.'+id,{method:'DELETE',headers:{'apikey':key,'Authorization':'Bearer '+key}});
-  }
+var _faqPendingDeletes=[];
+function deleteFaqQuestion(id){
+  _faqPendingDeletes.push(id);
   _faqAllQuestions=_faqAllQuestions.filter(function(q){return q.id!==id;});
   renderFaqPanel(_faqAllQuestions,_faqTab);
-  showToast('Question supprimee');
+  showToast('Supprimé — annulable avec Annuler');
 }
 
 async function saveManualQA(){
@@ -872,10 +869,6 @@ function renderFaqPanel(questions, tab){
     }
     h+='<button class="ap-sv" style="margin-top:8px;" onclick="saveManualQA()">Enregistrer les Q&amp;R</button>';
     panel.innerHTML=h;
-    document.getElementById('faqPanel').addEventListener('click',function(e){
-      var t=e.target.closest('.del-faq');
-      if(t)deleteFaqQuestion(t.getAttribute('data-faq-del'));
-    },{once:true});
     return;
   }
 
@@ -902,11 +895,6 @@ function renderFaqPanel(questions, tab){
   });
   h+='<button class="ap-sv" style="margin-top:8px;" onclick="saveFaqAnswers()">Enregistrer les reponses</button>';
   panel.innerHTML=h;
-  // Event delegation for delete buttons
-  document.getElementById('faqPanel').addEventListener('click',function(e){
-    var t=e.target.closest('.del-faq');
-    if(t)deleteFaqQuestion(t.getAttribute('data-faq-del'));
-  },{once:true});
   var uncount=questions.filter(function(q){return (!q.answer||q.answer.trim()==='')&&!q.manual&&q.count>0;}).length;
   var btnUn=document.getElementById('faqTabUnanswered');
   if(btnUn)btnUn.textContent=(uncount>0?'Sans reponse ('+uncount+')':'Toutes repondues');
@@ -917,9 +905,19 @@ function addManualQA(){
   renderFaqPanel(_faqAllQuestions,'manual');
 }
 
+var _faqPanelListenerAdded=false;
 async function buildFaqPanel(){
   var panel=document.getElementById('faqPanel');
   panel.innerHTML='<div style="font-size:11px;color:var(--fog);text-align:center;padding:16px;">Chargement...</div>';
+  // Listener permanent (une seule fois) sur le conteneur parent du faqPanel
+  if(!_faqPanelListenerAdded){
+    var container=panel.parentElement;
+    container.addEventListener('click',function(e){
+      var t=e.target.closest('.del-faq');
+      if(t)deleteFaqQuestion(t.getAttribute('data-faq-del'));
+    });
+    _faqPanelListenerAdded=true;
+  }
   var questions=await loadChatQuestions();
   _faqAllQuestions=questions||[];
   renderFaqPanel(_faqAllQuestions, _faqTab);
@@ -1824,10 +1822,12 @@ function enterAdmin(){
 
 function exitAdmin(){
   adm=false;staged={};
+  _faqPendingDeletes=[];
   document.getElementById('adminBar').classList.remove('on');
   document.getElementById('adminPanel').classList.remove('on');
   document.getElementById('mainGrid').classList.remove('adm');
-  render();
+  // Recharger les données originales (annule les suppressions non sauvegardées)
+  load().then(function(){render();});
 }
 
 async function saveAdmin(){
@@ -1876,6 +1876,16 @@ async function saveAdmin(){
   // Save manuel items
   collectManuelFields();
   S.manuel=(S.manuel||[]).filter(function(x){return x.nom;});
+  // Appliquer les suppressions FAQ en attente
+  if(_faqPendingDeletes.length){
+    var url2=getSupaUrl();var key2=getSupaKey();
+    if(url2&&key2){
+      for(var did of _faqPendingDeletes){
+        await fetch(url2+'/rest/v1/chat_questions?id=eq.'+did,{method:'DELETE',headers:{'apikey':key2,'Authorization':'Bearer '+key2}});
+      }
+    }
+    _faqPendingDeletes=[];
+  }
   await save();
   addKnownProp(getPropId(),S.name);
   render();showToast('Enregistré ✓');
