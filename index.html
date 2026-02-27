@@ -481,6 +481,7 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
         <div style="display:flex;gap:6px;margin-bottom:12px;">
           <button id="faqTabAll" onclick="switchFaqTab('all')" style="flex:1;padding:7px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;border-radius:2px;cursor:pointer;font-family:inherit;background:var(--stone);color:#fff;border:none;">Toutes</button>
           <button id="faqTabUnanswered" onclick="switchFaqTab('unanswered')" style="flex:1;padding:7px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;border-radius:2px;cursor:pointer;font-family:inherit;background:none;color:var(--bark);border:1px solid var(--border2);">⚠️ Sans réponse</button>
+          <button id="faqTabManual" onclick="switchFaqTab('manual')" style="flex:1;padding:7px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;border-radius:2px;cursor:pointer;font-family:inherit;background:none;color:var(--bark);border:1px solid var(--border2);">✍️ Mes Q&amp;R</button>
         </div>
         <div id="faqPanel"><div style="font-size:11px;color:var(--fog);text-align:center;padding:16px;">Aucune question enregistrée</div></div>
         <button class="ap-sv" style="margin-top:4px;" onclick="saveFaqAnswers()">Enregistrer les réponses</button>
@@ -774,20 +775,62 @@ async function saveChatQuestion(question){
 
 async function loadChatQuestions(){
   var pid=getPropId();
-  var data=await supaFetch('chat_questions?property_id=eq.'+encodeURIComponent(pid)+'&order=count.desc&limit=30');
+  var data=await supaFetch('chat_questions?property_id=eq.'+encodeURIComponent(pid)+'&order=count.desc&limit=100');
   return data||[];
 }
 
 async function saveFaqAnswers(){
   var url=getSupaUrl();var key=getSupaKey();
-  if(!url||!key){showToast('Supabase non configuré');return;}
+  if(!url||!key){showToast('Supabase non configure');return;}
   var items=document.querySelectorAll('[data-faq-id]');
   for(var el of items){
     var id=el.getAttribute('data-faq-id');
     var ans=el.value.trim();
+    if(id.startsWith('manual_')){continue;}// manual saved separately
     await fetch(url+'/rest/v1/chat_questions?id=eq.'+id,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key},body:JSON.stringify({answer:ans})});
   }
-  showToast('Réponses enregistrées ✓');
+  // Auto-remove from "sans reponse" tab: update local cache
+  _faqAllQuestions=_faqAllQuestions.map(function(q){
+    var el=document.getElementById('faq_'+q.id);
+    if(el)q.answer=el.value.trim();
+    return q;
+  });
+  if(_faqTab==='unanswered')renderFaqPanel(_faqAllQuestions,'unanswered');
+  showToast('Reponses enregistrees');
+}
+
+async function deleteFaqQuestion(id){
+  if(!confirm('Supprimer cette question ?'))return;
+  var url=getSupaUrl();var key=getSupaKey();
+  if(url&&key){
+    await fetch(url+'/rest/v1/chat_questions?id=eq.'+id,{method:'DELETE',headers:{'apikey':key,'Authorization':'Bearer '+key}});
+  }
+  _faqAllQuestions=_faqAllQuestions.filter(function(q){return q.id!==id;});
+  renderFaqPanel(_faqAllQuestions,_faqTab);
+  showToast('Question supprimee');
+}
+
+async function saveManualQA(){
+  var url=getSupaUrl();var key=getSupaKey();
+  if(!url||!key){showToast('Supabase non configure');return;}
+  var items=document.querySelectorAll('[data-manual-q]');
+  var saved=0;
+  for(var el of items){
+    var q=el.value.trim();
+    var aEl=document.getElementById(el.id.replace('mq_','ma_'));
+    var a=aEl?aEl.value.trim():'';
+    if(!q)continue;
+    var existId=el.getAttribute('data-manual-id');
+    if(existId){
+      await fetch(url+'/rest/v1/chat_questions?id=eq.'+existId,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key},body:JSON.stringify({question:q,answer:a})});
+    } else {
+      var pid=getPropId();
+      await fetch(url+'/rest/v1/chat_questions',{method:'POST',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key},body:JSON.stringify({property_id:pid,question:q,answer:a,count:0,manual:true})});
+    }
+    saved++;
+  }
+  showToast(saved+' Q&R enregistrees');
+  buildFaqPanel();
 }
 
 var _faqAllQuestions=[];
@@ -795,24 +838,52 @@ var _faqTab='all';
 
 function switchFaqTab(tab){
   _faqTab=tab;
-  var btnAll=document.getElementById('faqTabAll');
-  var btnUn=document.getElementById('faqTabUnanswered');
-  if(tab==='all'){
-    btnAll.style.background='var(--stone)';btnAll.style.color='#fff';btnAll.style.border='none';
-    btnUn.style.background='none';btnUn.style.color='var(--bark)';btnUn.style.border='1px solid var(--border2)';
-  } else {
-    btnUn.style.background='var(--stone)';btnUn.style.color='#fff';btnUn.style.border='none';
-    btnAll.style.background='none';btnAll.style.color='var(--bark)';btnAll.style.border='1px solid var(--border2)';
-  }
+  var tabs=['faqTabAll','faqTabUnanswered','faqTabManual'];
+  tabs.forEach(function(id){
+    var b=document.getElementById(id);
+    if(!b)return;
+    b.style.background='none';b.style.color='var(--bark)';b.style.border='1px solid var(--border2)';
+  });
+  var active=document.getElementById(tab==='all'?'faqTabAll':tab==='unanswered'?'faqTabUnanswered':'faqTabManual');
+  if(active){active.style.background='var(--stone)';active.style.color='#fff';active.style.border='none';}
   renderFaqPanel(_faqAllQuestions, tab);
 }
 
 function renderFaqPanel(questions, tab){
   var panel=document.getElementById('faqPanel');
-  var filtered=tab==='unanswered'?questions.filter(function(q){return !q.answer||q.answer.trim()==='';}) : questions;
+
+  if(tab==='manual'){
+    var manuals=questions.filter(function(q){return q.manual||q.count===0;});
+    var h='<div style="margin-bottom:10px;">';
+    h+='<button class="ap-fb" style="width:100%;padding:10px;font-size:9px;letter-spacing:2px;" onclick="addManualQA()">+ Ajouter une Q&amp;R</button></div>';
+    if(!manuals.length){h+='<div style="font-size:11px;color:var(--fog);text-align:center;padding:16px;">Aucune Q&amp;R manuelle. Cliquez + pour en ajouter.</div>';}
+    else {
+      manuals.forEach(function(q,i){
+        var qId='mq_'+i; var aId='ma_'+i;
+        h+='<div class="faq-item" style="border-left:3px solid var(--green);padding-left:10px;">';
+        h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+        h+='<div style="font-size:9px;font-weight:600;letter-spacing:1px;color:var(--green);text-transform:uppercase;">Q&amp;R manuelle</div>';
+        h+='<span class="del-faq" data-faq-del="'+q.id+'" style="font-size:10px;color:var(--red);cursor:pointer;padding:3px 8px;border:1px solid rgba(176,80,80,.3);border-radius:2px;">Supprimer</span>';
+        h+='</div>';
+        h+='<div class="ap-f"><label>Question</label><input class="ap-in" id="'+qId+'" data-manual-q="1" data-manual-id="'+q.id+'" value="'+esc(q.question||'')+'" placeholder="Ex: Comment fonctionne le four ?"></div>';
+        h+='<div class="ap-f" style="margin-top:6px;"><label>Reponse</label><textarea class="ap-ta" id="'+aId+'" placeholder="Reponse complete…" style="min-height:60px;">'+esc(q.answer||'')+'</textarea></div>';
+        h+='</div>';
+      });
+    }
+    h+='<button class="ap-sv" style="margin-top:8px;" onclick="saveManualQA()">Enregistrer les Q&amp;R</button>';
+    panel.innerHTML=h;
+    document.getElementById('faqPanel').addEventListener('click',function(e){
+      var t=e.target.closest('.del-faq');
+      if(t)deleteFaqQuestion(t.getAttribute('data-faq-del'));
+    },{once:true});
+    return;
+  }
+
+  var filtered=tab==='unanswered'?questions.filter(function(q){return (!q.answer||q.answer.trim()==='')&&!q.manual&&q.count>0;}) : questions.filter(function(q){return !q.manual||q.count>0;});
   if(!filtered.length){
     var msg=tab==='unanswered'?'Toutes les questions ont une reponse !':'Aucune question pour l instant';
     panel.innerHTML='<div style="font-size:11px;color:var(--fog);text-align:center;padding:16px;">'+msg+'</div>';
+    if(tab==='all'){panel.innerHTML+='<button class="ap-sv" style="margin-top:8px;" onclick="saveFaqAnswers()">Enregistrer</button>';}
     return;
   }
   var h='';
@@ -820,17 +891,30 @@ function renderFaqPanel(questions, tab){
     var faqId='faq_'+q.id;
     var unanswered=!q.answer||q.answer.trim()==='';
     h+='<div class="faq-item" style="'+(unanswered?'border-left:3px solid var(--bark);padding-left:10px;':'')+'">';
-    h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">';
     h+='<div class="faq-q">'+esc(q.question)+'</div>';
-    h+='<div style="display:flex;align-items:center;gap:6px;"><div class="faq-count">'+q.count+'x</div>'+(unanswered?'<div style="font-size:9px;background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:2px;font-weight:600;">SANS REP.</div>':'')+'</div>';
-    h+='</div>';
-    h+='<div class="rte-wrap">'+rteToolbar(faqId)+'<textarea class="ap-ta rte-ta faq-a" id="'+faqId+'" data-faq-id="'+q.id+'" placeholder="Tapez une reponse pour ameliorer l IA…" style="min-height:60px;">'+esc(q.answer||'')+'</textarea></div>';
+    h+='<div style="display:flex;align-items:center;gap:6px;">';
+    h+='<div class="faq-count">'+q.count+'x</div>';
+    h+='<span class="del-faq" data-faq-del="'+q.id+'" style="font-size:10px;color:var(--red);cursor:pointer;padding:3px 8px;border:1px solid rgba(176,80,80,.3);border-radius:2px;flex-shrink:0;">✕</span>';
+    h+='</div></div>';
+    h+='<div class="rte-wrap">'+rteToolbar(faqId)+'<textarea class="ap-ta rte-ta faq-a" id="'+faqId+'" data-faq-id="'+q.id+'" placeholder="Tapez une reponse…" style="min-height:60px;">'+esc(q.answer||'')+'</textarea></div>';
     h+='</div>';
   });
+  h+='<button class="ap-sv" style="margin-top:8px;" onclick="saveFaqAnswers()">Enregistrer les reponses</button>';
   panel.innerHTML=h;
-  var uncount=questions.filter(function(q){return !q.answer||q.answer.trim()==='';}).length;
+  // Event delegation for delete buttons
+  document.getElementById('faqPanel').addEventListener('click',function(e){
+    var t=e.target.closest('.del-faq');
+    if(t)deleteFaqQuestion(t.getAttribute('data-faq-del'));
+  },{once:true});
+  var uncount=questions.filter(function(q){return (!q.answer||q.answer.trim()==='')&&!q.manual&&q.count>0;}).length;
   var btnUn=document.getElementById('faqTabUnanswered');
-  if(btnUn)btnUn.textContent=(uncount>0?'Sans repons ('+uncount+')':'Toutes repondues');
+  if(btnUn)btnUn.textContent=(uncount>0?'Sans reponse ('+uncount+')':'Toutes repondues');
+}
+
+function addManualQA(){
+  _faqAllQuestions.push({id:'new_'+Date.now(),question:'',answer:'',count:0,manual:true});
+  renderFaqPanel(_faqAllQuestions,'manual');
 }
 
 async function buildFaqPanel(){
@@ -1511,7 +1595,12 @@ async function addProp(){
 
 async function deleteProp(){
   var arr=getKnownProps();if(arr.length<=1){alert('Impossible de supprimer le seul logement.');return;}
-  if(!confirm('Supprimer ce logement ?'))return;
+  // Étape 1 : confirmation oui/non
+  if(!confirm('⚠️ Êtes-vous sûr de vouloir supprimer ce logement ?\n\nCette action est irréversible.'))return;
+  // Étape 2 : saisie du code de sécurité
+  var code=prompt('Pour confirmer la suppression, entrez le code de sécurité :');
+  if(code===null)return;
+  if(code.trim()!=='221081'){alert('Code incorrect. Suppression annulée.');return;}
   var cid=getPropId();
   var remain=arr.filter(function(p){return p.id!==cid;});
   localStorage.setItem('ths_known_props',JSON.stringify(remain));
@@ -2081,6 +2170,14 @@ async function sendMsg(){
   // Save question to Supabase
   saveChatQuestion(txt);
   var L=LANGS[lng]||LANGS['fr'];
+  // Include manual Q&A in context
+  var manualCtx='';
+  if(_faqAllQuestions&&_faqAllQuestions.length){
+    var withAnswers=_faqAllQuestions.filter(function(q){return q.answer&&q.answer.trim();});
+    if(withAnswers.length){
+      manualCtx='\n--- Q&R PERSONNALISEES (PRIORITE ABSOLUE) ---\n'+withAnswers.map(function(q){return 'Q: '+q.question+'\nR: '+q.answer;}).join('\n')+'\n';
+    }
+  }
   var ctx=Object.keys(L.rows).map(function(k){
     if(['restaurants','bars','activites','services'].indexOf(k)>=0){var places=getPlaces(k);return L[k]+': '+places.map(function(r){return r.t+(r.cat?' ('+r.cat+')':'')+': '+r.v+(r.addr?' — '+r.addr:'')+(r.tel?' — Tel:'+r.tel:'');}).join(' | ');}
     return L[k]+': '+getRows(k).map(function(r){return r.t+': '+r.v;}).join(' | ');
@@ -2093,7 +2190,7 @@ async function sendMsg(){
   var hostName=S.hostName||'les propriétaires';
   var aiName=S.aiName||'Assistant Mana';
   var personality=S.aiPersonality?('Ton et personnalité: '+S.aiPersonality+'. '):'';
-  var sys='Tu t\'appelles "'+aiName+'" et tu es l\'assistant virtuel du logement "'+S.name+'" situé à '+S.addr+'. Tu réponds TOUJOURS en '+L.lang+'. '+personality++
+  var sys='Tu t\'appelles "'+aiName+'" et tu es l\'assistant virtuel du logement "'+S.name+'" situé à '+S.addr+'. Tu réponds TOUJOURS en '+L.lang+'. '+personality+
     'Tu es chaleureux, serviable et tu fais de ton mieux pour aider les voyageurs. '+
     'Tu as accès à toutes les informations du logement ci-dessous — utilise-les pour répondre précisément. '+
     'Si on te demande une quantité (verres, serviettes, etc.), cherche dans l\'inventaire et donne le chiffre exact. '+
