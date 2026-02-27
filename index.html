@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title id="pageTitle">Gîte Mana</title>
 <link id="faviconLink" rel="icon" type="image/png" href="">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -454,17 +453,7 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
         </div>
         <div class="ap-f"><label>Nom de l'IA</label><input class="ap-in" id="apAiName" placeholder="Ex: Luna, Mana Assistant…"></div>
         <div class="ap-f"><label>Message d'accueil</label><input class="ap-in" id="apAiWelcome" placeholder="Ex: Bonjour ! Je suis votre assistant…"></div>
-        <div class="ap-f">
-          <label>Ton de l'IA</label>
-          <select class="ap-in" id="apAiPersonality" style="cursor:pointer;">
-            <option value="">Neutre (défaut)</option>
-            <option value="Chaleureux et amical, tutoiement, ambiance conviviale">😊 Chaleureux & amical (tutoiement)</option>
-            <option value="Professionnel et courtois, vouvoiement, ton hôtelier">🎩 Professionnel & hôtelier (vouvoiement)</option>
-            <option value="Décontracté et cool, tutoiement, style jeune et moderne">😎 Décontracté & cool (tutoiement)</option>
-            <option value="Luxueux et raffiné, vouvoiement, vocabulaire élégant et sophistiqué">✨ Luxueux & raffiné (vouvoiement)</option>
-            <option value="Humoristique et fun, tutoiement, touches d'humour léger">😄 Humoristique & fun (tutoiement)</option>
-          </select>
-        </div>
+        <div class="ap-f"><label>Personnalité / Ton</label><input class="ap-in" id="apAiPersonality" placeholder="Ex: Chaleureux, professionnel, en tutoiement…"></div>
       </div>
 
       <div class="ap-sec">
@@ -509,17 +498,6 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
         <div class="ap-hd">Mot de passe admin</div>
         <div class="ap-f"><label>Nouveau mot de passe</label><input class="ap-in" id="apPwd" type="password" placeholder="Vide = conserver l'actuel"></div>
         <div class="ap-f"><label>Confirmer</label><input class="ap-in" id="apPwd2" type="password"></div>
-      </div>
-      <!-- LIEN VOYAGEUR + QR CODE -->
-      <div class="ap-sec" id="propLinkSection">
-        <div class="ap-hd">🔗 Lien & QR Code voyageur</div>
-        <div style="font-size:10px;color:var(--dust);margin-bottom:10px;line-height:1.6;">Partagez ce lien à vos voyageurs. Il ouvre directement ce logement.</div>
-        <div style="background:var(--white);border:1px solid var(--border2);border-radius:3px;padding:8px 11px;font-size:11px;font-family:monospace;color:var(--stone);word-break:break-all;margin-bottom:10px;" id="propLinkDisplay"></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="ap-fb" onclick="copyPropLink()" style="background:var(--stone);color:#fff;border-color:var(--stone);">📋 Copier le lien</button>
-          <button class="ap-fb" onclick="downloadQR()">⬛ Télécharger QR Code</button>
-        </div>
-        <div id="qrContainer" style="margin-top:14px;display:none;"></div>
       </div>
       <div style="height:8px"></div>
     </div>
@@ -739,15 +717,7 @@ async function testSupabase(){
   try{
     var r=await fetch(url+'/rest/v1/properties?limit=1',{headers:{'apikey':key,'Authorization':'Bearer '+key}});
     if(r.ok||r.status===200){
-      localStorage.setItem(SUPA_URL_KEY,url);localStorage.setItem(SUPA_KEY_KEY,key);
-      // Ne changer l'ID que si le champ a été modifié manuellement (différent de l'ID courant actif)
-      var currentPid=getPropId();
-      if(pid && pid!==currentPid){
-        // Mise à jour de l'ID uniquement si intentionnelle (champ modifié manuellement)
-        // On ne le fait pas automatiquement pour éviter d'écraser le logement actif
-      } else {
-        localStorage.setItem(PROP_ID_KEY,pid);
-      }
+      localStorage.setItem(SUPA_URL_KEY,url);localStorage.setItem(SUPA_KEY_KEY,key);localStorage.setItem(PROP_ID_KEY,pid);
       var akey=document.getElementById('apAnthropicKey');if(akey&&akey.value.trim()){var kv=akey.value.trim();localStorage.setItem(ANTHROPIC_KEY_STORE,kv);localStorage.setItem(GROQ_KEY_STORE,kv);S.aiKey=kv;}
       cloudReady=true;updateCloudStatusUI();
       res.style.background='rgba(90,138,106,0.1)';res.style.color='var(--green)';
@@ -803,19 +773,6 @@ async function saveChatQuestion(question){
   }catch(e){console.log('chat question save error:',e);}
 }
 
-async function saveChatAnswer(question, answer){
-  var pid=getPropId();
-  var url=getSupaUrl();var key=getSupaKey();
-  if(!url||!key)return;
-  try{
-    var r=await fetch(url+'/rest/v1/chat_questions?property_id=eq.'+encodeURIComponent(pid)+'&question=eq.'+encodeURIComponent(question),{headers:{'apikey':key,'Authorization':'Bearer '+key}});
-    var existing=await r.json();
-    if(existing&&existing.length>0){
-      await fetch(url+'/rest/v1/chat_questions?id=eq.'+existing[0].id,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key},body:JSON.stringify({answer:answer})});
-    }
-  }catch(e){console.log('saveChatAnswer error:',e);}
-}
-
 async function loadChatQuestions(){
   var pid=getPropId();
   var data=await supaFetch('chat_questions?property_id=eq.'+encodeURIComponent(pid)+'&order=count.desc&limit=100');
@@ -842,12 +799,15 @@ async function saveFaqAnswers(){
   showToast('Reponses enregistrees');
 }
 
-var _faqPendingDeletes=[];
-function deleteFaqQuestion(id){
-  _faqPendingDeletes.push(id);
+async function deleteFaqQuestion(id){
+  if(!confirm('Supprimer cette question ?'))return;
+  var url=getSupaUrl();var key=getSupaKey();
+  if(url&&key){
+    await fetch(url+'/rest/v1/chat_questions?id=eq.'+id,{method:'DELETE',headers:{'apikey':key,'Authorization':'Bearer '+key}});
+  }
   _faqAllQuestions=_faqAllQuestions.filter(function(q){return q.id!==id;});
   renderFaqPanel(_faqAllQuestions,_faqTab);
-  showToast('Supprimé — annulable avec Annuler');
+  showToast('Question supprimee');
 }
 
 async function saveManualQA(){
@@ -912,6 +872,10 @@ function renderFaqPanel(questions, tab){
     }
     h+='<button class="ap-sv" style="margin-top:8px;" onclick="saveManualQA()">Enregistrer les Q&amp;R</button>';
     panel.innerHTML=h;
+    document.getElementById('faqPanel').addEventListener('click',function(e){
+      var t=e.target.closest('.del-faq');
+      if(t)deleteFaqQuestion(t.getAttribute('data-faq-del'));
+    },{once:true});
     return;
   }
 
@@ -938,6 +902,11 @@ function renderFaqPanel(questions, tab){
   });
   h+='<button class="ap-sv" style="margin-top:8px;" onclick="saveFaqAnswers()">Enregistrer les reponses</button>';
   panel.innerHTML=h;
+  // Event delegation for delete buttons
+  document.getElementById('faqPanel').addEventListener('click',function(e){
+    var t=e.target.closest('.del-faq');
+    if(t)deleteFaqQuestion(t.getAttribute('data-faq-del'));
+  },{once:true});
   var uncount=questions.filter(function(q){return (!q.answer||q.answer.trim()==='')&&!q.manual&&q.count>0;}).length;
   var btnUn=document.getElementById('faqTabUnanswered');
   if(btnUn)btnUn.textContent=(uncount>0?'Sans reponse ('+uncount+')':'Toutes repondues');
@@ -948,19 +917,9 @@ function addManualQA(){
   renderFaqPanel(_faqAllQuestions,'manual');
 }
 
-var _faqPanelListenerAdded=false;
 async function buildFaqPanel(){
   var panel=document.getElementById('faqPanel');
   panel.innerHTML='<div style="font-size:11px;color:var(--fog);text-align:center;padding:16px;">Chargement...</div>';
-  // Listener permanent (une seule fois) sur le conteneur parent du faqPanel
-  if(!_faqPanelListenerAdded){
-    var container=panel.parentElement;
-    container.addEventListener('click',function(e){
-      var t=e.target.closest('.del-faq');
-      if(t)deleteFaqQuestion(t.getAttribute('data-faq-del'));
-    });
-    _faqPanelListenerAdded=true;
-  }
   var questions=await loadChatQuestions();
   _faqAllQuestions=questions||[];
   renderFaqPanel(_faqAllQuestions, _faqTab);
@@ -1626,71 +1585,41 @@ async function switchProp(id){
   await load();render();fillAdminFields();loadWeather();
 }
 
-function slugify(str){return str.toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
-
-function getPropUrl(){
-  var base=window.location.href.split('?')[0].split('#')[0];
-  return base+'?p='+encodeURIComponent(getPropId());
-}
-
-function updatePropLinkDisplay(){
-  var el=document.getElementById('propLinkDisplay');
-  if(el)el.textContent=getPropUrl();
-}
-
-function copyPropLink(){
-  var url=getPropUrl();
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(url).then(function(){showToast('Lien copié ✓');});
-  } else {
-    var t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);
-    showToast('Lien copié ✓');
-  }
-}
-
-function downloadQR(){
-  var url=getPropUrl();
-  var container=document.getElementById('qrContainer');
-  container.style.display='block';
-  container.innerHTML='<div id="qrInner" style="display:inline-block;padding:12px;background:#fff;border-radius:4px;border:1px solid var(--border);"></div>';
-  try{
-    new QRCode(document.getElementById('qrInner'),{text:url,width:160,height:160,colorDark:'#2E2820',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
-    setTimeout(function(){
-      var canvas=container.querySelector('canvas');
-      if(canvas){
-        var a=document.createElement('a');
-        a.download='qr-'+getPropId()+'.png';
-        a.href=canvas.toDataURL('image/png');
-        a.click();
-        showToast('QR Code téléchargé ✓');
-      }
-    },300);
-  }catch(e){container.innerHTML='<div style="font-size:10px;color:var(--dust);padding:8px;">Affichage du QR ci-dessus — faites une capture d\'écran.</div>';}
-}
-
 async function addProp(){
   var name=prompt('Nom du nouveau logement :','Appartement 2');if(!name)return;
-  var id=slugify(name)||'prop'+Date.now();
-  // Éviter les doublons d'ID
-  var existing=getKnownProps();
-  if(existing.find(function(p){return p.id===id;})){id=id+'-'+Date.now();}
+  var id='prop'+Date.now();
   localStorage.setItem(PROP_ID_KEY,id);
   S=JSON.parse(JSON.stringify(DEF));S.name=name;
   await save();refreshPropSelect();render();fillAdminFields();
 }
 
 async function deleteProp(){
-  var arr=getKnownProps();if(arr.length<=1){alert('Impossible de supprimer le seul logement.');return;}
-  // Étape 1 : confirmation oui/non
-  if(!confirm('⚠️ Êtes-vous sûr de vouloir supprimer ce logement ?\n\nCette action est irréversible.'))return;
-  // Étape 2 : saisie du code de sécurité
-  var code=prompt('Pour confirmer la suppression, entrez le code de sécurité :');
+  var arr=getKnownProps();
+  if(arr.length<=1){alert('Impossible de supprimer le seul logement.');return;}
+  var cid=getPropId();
+  var propName=S.name||cid;
+  // Étape 1 : confirmation avec le nom du logement
+  if(!confirm('\u26a0\ufe0f Êtes-vous sûr de vouloir supprimer "'+propName+'" ?\n\nCette action est irréversible.'))return;
+  // Étape 2 : code de sécurité
+  var code=prompt('Pour confirmer la suppression de "'+propName+'", entrez le code de sécurité :');
   if(code===null)return;
   if(code.trim()!=='221081'){alert('Code incorrect. Suppression annulée.');return;}
-  var cid=getPropId();
+  // Supprimer dans Supabase
+  var url=getSupaUrl();var key=getSupaKey();
+  if(url&&key){
+    try{
+      await fetch(url+'/rest/v1/properties?id=eq.'+encodeURIComponent(cid),{
+        method:'DELETE',
+        headers:{'apikey':key,'Authorization':'Bearer '+key,'Content-Type':'application/json'}
+      });
+    }catch(e){console.error('Erreur suppression Supabase:',e);}
+  }
+  // Supprimer du localStorage
+  localStorage.removeItem('ths_data_'+cid);
   var remain=arr.filter(function(p){return p.id!==cid;});
   localStorage.setItem('ths_known_props',JSON.stringify(remain));
   localStorage.setItem(PROP_ID_KEY,remain[0].id);
+  showToast('"'+propName+'" supprimé ✓');
   await load();render();fillAdminFields();
 }
 
@@ -1894,7 +1823,6 @@ function fillAdminFields(){
   document.getElementById('apPropId').value=getPropId();
   updateCloudStatusUI();
   refreshPropSelect();
-  updatePropLinkDisplay();
   renderGalleryAdminList();
   renderManuelAdminList();
   buildFaqPanel();
@@ -1911,12 +1839,10 @@ function enterAdmin(){
 
 function exitAdmin(){
   adm=false;staged={};
-  _faqPendingDeletes=[];
   document.getElementById('adminBar').classList.remove('on');
   document.getElementById('adminPanel').classList.remove('on');
   document.getElementById('mainGrid').classList.remove('adm');
-  // Recharger les données originales (annule les suppressions non sauvegardées)
-  load().then(function(){render();});
+  render();
 }
 
 async function saveAdmin(){
@@ -1951,14 +1877,13 @@ async function saveAdmin(){
   S.mem=m;
   var p1=document.getElementById('apPwd').value,p2=document.getElementById('apPwd2').value;
   if(p1&&p1===p2)S.pwd=p1;
-  // Supabase keys — NE PAS changer PROP_ID_KEY ici, il est géré par switchProp/addProp
+  // Supabase keys
   var url=document.getElementById('apSupaUrl').value.trim();
   var key=document.getElementById('apSupaKey').value.trim();
   var pid=document.getElementById('apPropId').value.trim();
   if(url)localStorage.setItem(SUPA_URL_KEY,url);
   if(key)localStorage.setItem(SUPA_KEY_KEY,key);
-  // Sécurité : on ne change l'ID que si c'est bien celui du logement courant (évite l'écrasement entre logements)
-  if(pid && pid===getPropId())localStorage.setItem(PROP_ID_KEY,pid);
+  if(pid)localStorage.setItem(PROP_ID_KEY,pid);
   // Save gallery captions
   var items=S.gallery||[];
   items.forEach(function(item,i){var el=document.getElementById('gcap'+i);if(el)item.cap=el.value;});
@@ -1966,16 +1891,6 @@ async function saveAdmin(){
   // Save manuel items
   collectManuelFields();
   S.manuel=(S.manuel||[]).filter(function(x){return x.nom;});
-  // Appliquer les suppressions FAQ en attente
-  if(_faqPendingDeletes.length){
-    var url2=getSupaUrl();var key2=getSupaKey();
-    if(url2&&key2){
-      for(var did of _faqPendingDeletes){
-        await fetch(url2+'/rest/v1/chat_questions?id=eq.'+did,{method:'DELETE',headers:{'apikey':key2,'Authorization':'Bearer '+key2}});
-      }
-    }
-    _faqPendingDeletes=[];
-  }
   await save();
   addKnownProp(getPropId(),S.name);
   render();showToast('Enregistré ✓');
@@ -2292,7 +2207,7 @@ async function sendMsg(){
   var aiName=S.aiName||'Assistant Mana';
   var personality=S.aiPersonality?('Ton et personnalité: '+S.aiPersonality+'. '):'';
   var sys='Tu t\'appelles "'+aiName+'" et tu es l\'assistant virtuel du logement "'+S.name+'" situé à '+S.addr+'. Tu réponds TOUJOURS en '+L.lang+'. '+personality+
-    'RÈGLE DE LONGUEUR : Réponds en 2 à 4 phrases. Ni trop court (donne de vraies infos utiles), ni trop long (pas de pavés). Sois naturel et précis. '+
+    'RÈGLE ABSOLUE DE CONCISION : Réponds TOUJOURS en 1 à 3 phrases maximum. Jamais plus. Sois direct et précis. '+
     'Tu es chaleureux et serviable. '+
     'Tu as accès à toutes les informations du logement ci-dessous — utilise-les pour répondre précisément. '+
     'Si on te demande une quantité (verres, serviettes, etc.), cherche dans l\'inventaire et donne le chiffre exact. '+
@@ -2326,8 +2241,6 @@ async function sendMsg(){
     hist.push({role:'assistant',content:ans});
     document.getElementById('typing').classList.remove('on');
     addBub('ai',ans);
-    // Sauvegarder la réponse IA dans Supabase pour retirer la question des "sans réponse"
-    saveChatAnswer(txt, ans);
     if(S.hostPhone&&(ans.toLowerCase().indexOf('hôte')>=0||ans.toLowerCase().indexOf('host')>=0||ans.toLowerCase().indexOf('contact')>=0||ans.toLowerCase().indexOf('appel')>=0)){
       document.getElementById('chatHostBar').classList.add('on');
     }
@@ -2346,18 +2259,7 @@ function sendSug(btn){document.getElementById('ci').value=btn.textContent;sendMs
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
-function readPropFromUrl(){
-  var params=new URLSearchParams(window.location.search);
-  var p=params.get('p');
-  if(p){
-    localStorage.setItem(PROP_ID_KEY,p);
-    return true;
-  }
-  return false;
-}
-
 async function init(){
-  readPropFromUrl();
   // Safety: always hide the loading overlay after 6s max
   var safetyTimer=setTimeout(function(){
     var ov=document.getElementById('loadOv');if(ov)ov.classList.add('gone');
