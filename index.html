@@ -223,7 +223,7 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
 .e-row{padding:11px 0;border-bottom:1px solid var(--border);}.e-row:last-child{border-bottom:none;}
 .ap-sv{width:100%;background:var(--stone);color:var(--white);border:none;padding:12px;font-size:8px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;border-radius:2px;font-weight:600;font-family:inherit;margin-top:6px;}
 .ap-ok{text-align:center;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--green);margin-top:7px;display:none;font-weight:600;}
-.pwd-ov{display:none;position:fixed;inset:0;background:rgba(20,14,6,.55);z-index:240;align-items:center;justify-content:center;padding:20px;}
+.pwd-ov{display:none;position:fixed;inset:0;background:rgba(20,14,6,.55);z-index:600;align-items:center;justify-content:center;padding:20px;-webkit-overflow-scrolling:touch;}
 .pwd-ov.on{display:flex;}
 .pwd-box{background:var(--white);border-radius:4px;padding:34px 24px;width:100%;max-width:290px;text-align:center;border:1px solid var(--border);}
 .pwd-ttl{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--stone);margin-bottom:3px;}
@@ -638,8 +638,8 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
 
 <div class="pwd-ov" id="pwdOv">
   <div class="pwd-box">
-    <div class="pwd-ttl">Administration</div>
-    <div class="pwd-sub">Mot de passe</div>
+    <div class="pwd-ttl" id="pwdTtl">Administration</div>
+    <div class="pwd-sub" id="pwdSub">Mot de passe</div>
     <input class="pwd-in" type="password" id="pwdIn" placeholder="••••" onkeydown="if(event.key==='Enter')checkPwd()">
     <button class="pwd-go" onclick="checkPwd()">Entrer</button>
     <div class="pwd-err" id="pwdErr">Mot de passe incorrect</div>
@@ -732,8 +732,29 @@ async function cloudSaveUpsert(propData){
 
 
 function unlockSupabase(){
-  var code=prompt('Code Supabase :');
-  if(code==='051206'){
+  // Réutilise la modal existante avec callback
+  var pwdIn=document.getElementById('pwdIn');
+  var pwdErr=document.getElementById('pwdErr');
+  var pwdTtl=document.getElementById('pwdTtl');
+  var pwdSub=document.getElementById('pwdSub');
+  if(pwdTtl)pwdTtl.textContent='Accès Supabase';
+  if(pwdSub)pwdSub.textContent='Entrez votre mot de passe admin';
+  pwdIn.value='';pwdErr.style.display='none';
+  document.getElementById('pwdOv').classList.add('on');
+  document.body.style.overflow='hidden';
+  setTimeout(function(){pwdIn.focus();},300);
+  window._supaUnlockMode=true;
+}
+function doUnlockSupabase(){
+  var code=document.getElementById('pwdIn').value;
+  var validCode=S&&S.pwd?S.pwd:'221081';
+  if(code===validCode){
+    document.getElementById('pwdOv').classList.remove('on');
+    window._supaUnlockMode=false;
+    var pwdTtl=document.getElementById('pwdTtl');
+    var pwdSub=document.getElementById('pwdSub');
+    if(pwdTtl)pwdTtl.textContent='Administration';
+    if(pwdSub)pwdSub.textContent='Mot de passe';
     document.getElementById('supaLocked').style.display='none';
     document.getElementById('supaUnlocked').style.display='block';
     document.getElementById('apSupaUrl').value=getSupaUrl();
@@ -741,8 +762,9 @@ function unlockSupabase(){
     document.getElementById('apPropId').value=getPropId();
     var storedKey=getAnthropicKey()||getGroqKey()||(S&&S.aiKey?S.aiKey:'');
     document.getElementById('apAnthropicKey').value=storedKey;
-  } else if(code!==null){
-    showToast('Code incorrect');
+  } else {
+    document.getElementById('pwdErr').style.display='block';
+    document.getElementById('pwdIn').value='';
   }
 }
 async function testSupabase(){
@@ -2084,7 +2106,7 @@ function render(){
   document.getElementById('secLbl').textContent=L.g;
   document.getElementById('footerTxt').textContent=L.f;
   renderSocialBar();
-  document.getElementById('chatName').textContent=L.cn;
+  if(!S.aiName)document.getElementById('chatName').textContent=L.cn;
   document.getElementById('chatStatus').textContent=L.cs;
   document.getElementById('chatWelcome').textContent=L.cw;
   document.getElementById('sug1').textContent=L.s1;
@@ -2196,10 +2218,20 @@ function togChk(el){el.classList.toggle('done');el.querySelector('.chk').classLi
 // ═══════════════════════════════════════════════
 // ADMIN
 // ═══════════════════════════════════════════════
-function onTap(){if(adm)return;taps++;clearTimeout(tapT);if(taps>=5){taps=0;openPwd();return;}tapT=setTimeout(function(){taps=0;},2000);}
-function openPwd(){document.getElementById('pwdIn').value='';document.getElementById('pwdErr').style.display='none';document.getElementById('pwdOv').classList.add('on');setTimeout(function(){document.getElementById('pwdIn').focus();},300);}
-function closePwd(){document.getElementById('pwdOv').classList.remove('on');}
-function checkPwd(){if(document.getElementById('pwdIn').value===S.pwd){closePwd();enterAdmin();}else{document.getElementById('pwdErr').style.display='block';document.getElementById('pwdIn').value='';}}
+function onTap(){if(adm)return;taps++;clearTimeout(tapT);if(taps>=5){taps=0;openPwd();return;}tapT=setTimeout(function(){taps=0;},3500);}
+function openPwd(){document.getElementById('pwdIn').value='';document.getElementById('pwdErr').style.display='none';document.getElementById('pwdOv').classList.add('on');document.body.style.overflow='hidden';setTimeout(function(){document.getElementById('pwdIn').focus();},300);}
+function closePwd(){
+  document.getElementById('pwdOv').classList.remove('on');
+  document.body.style.overflow='';
+  if(window._supaUnlockMode){
+    window._supaUnlockMode=false;
+    var pwdTtl=document.getElementById('pwdTtl');
+    var pwdSub=document.getElementById('pwdSub');
+    if(pwdTtl)pwdTtl.textContent='Administration';
+    if(pwdSub)pwdSub.textContent='Mot de passe';
+  }
+}
+function checkPwd(){if(window._supaUnlockMode){doUnlockSupabase();return;}if(document.getElementById('pwdIn').value===S.pwd){closePwd();enterAdmin();}else{document.getElementById('pwdErr').style.display='block';document.getElementById('pwdIn').value='';}}
 
 
 function initRteToolbars(){
