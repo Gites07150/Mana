@@ -682,8 +682,14 @@ async function supaFetch(path,method,body){
 
 async function cloudLoad(){
   var pid=getPropId();
-  var data=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data');
-  if(data&&data.length>0){cloudReady=true;return data[0].data;}
+  var data=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data,bg,avatar');
+  if(data&&data.length>0){
+    cloudReady=true;
+    var obj=data[0].data||{};
+    if(data[0].bg)obj.bg=data[0].bg;
+    if(data[0].avatar)obj.avatar=data[0].avatar;
+    return obj;
+  }
   cloudReady=false;return null;
 }
 
@@ -704,9 +710,23 @@ async function cloudSaveUpsert(propData){
   var url=getSupaUrl();var key=getSupaKey();
   if(!url||!key)return false;
   try{
-    var r=await fetch(url+'/rest/v1/properties',{method:'POST',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify({id:pid,data:propData,updated_at:new Date().toISOString()})});
-    cloudReady=r.ok;
-    return r.ok;
+    // bg et avatar dans colonnes séparées pour éviter la limite 1MB
+    var mainData=JSON.parse(JSON.stringify(propData));
+    var bgData=mainData.bg||'';
+    var avData=mainData.avatar||'';
+    delete mainData.bg;
+    delete mainData.avatar;
+    var payload={id:pid,data:mainData,updated_at:new Date().toISOString()};
+    if(bgData)payload.bg=bgData;
+    if(avData)payload.avatar=avData;
+    var r=await fetch(url+'/rest/v1/properties',{method:'POST',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(payload)});
+    if(!r.ok){
+      // Fallback: colonnes bg/avatar peut-être absentes, réessayer sans
+      var payload2={id:pid,data:propData,updated_at:new Date().toISOString()};
+      var r2=await fetch(url+'/rest/v1/properties',{method:'POST',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(payload2)});
+      cloudReady=r2.ok;return r2.ok;
+    }
+    cloudReady=true;return true;
   }catch(e){cloudReady=false;return false;}
 }
 
@@ -1182,7 +1202,7 @@ function buildAvisPage(){
   var socials=S.socials||[];
   if(socials.length){
     h+='<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">';
-    h+='<div style="font-size:14px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--bark);text-align:center;margin-bottom:12px;">Nous suivre</div>';
+    h+='<div style="font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--bark);text-align:center;margin-bottom:12px;">Nous suivre</div>';
     socials.forEach(function(s){
       if(!s.url)return;
       var bg=s.gradient?s.gradient:s.color||'#9B7E60';
@@ -1740,8 +1760,7 @@ function renderSocialBar(){
       var iconHtml=icon.replace(/stroke="currentColor"/g,'stroke="#9B7E60"').replace(/fill="currentColor"/g,'fill="#9B7E60"');
       return '<a href="'+esc(s.url)+'" target="_blank" title="'+esc(s.nom||s.id)+'" '+
         'style="display:flex;align-items:center;justify-content:center;'+
-        'width:44px;height:44px;border-radius:50%;'+
-        'background:transparent;'+
+        'width:44px;height:44px;border-radius:50%;background:transparent;'+
         'text-decoration:none;transition:opacity .15s;flex-shrink:0;" '+
         'ontouchstart="this.style.opacity=\'.7\'" '+
         'ontouchend="this.style.opacity=\'1\'">'+
@@ -1924,8 +1943,8 @@ async function compressAllImgs(obj){
     // avatar & bg
     ['avatar','bg'].forEach(function(k){
       if(clone[k]&&clone[k].startsWith('data:')){
-        if(k==='bg'){tasks.push(new Promise(function(res){compressImg(clone[k],800,0.72,function(v){clone[k]=v;res();});}));}
-        else{tasks.push(new Promise(function(res){compressImg(clone[k],400,0.60,function(v){clone[k]=v;res();});}));}
+        var mw=k==='bg'?900:400;var ql=k==='bg'?0.85:0.5;
+        tasks.push(new Promise(function(res){compressImg(clone[k],mw,ql,function(v){clone[k]=v;res();});}));
       }
     });
     // histoire img
@@ -2303,6 +2322,9 @@ async function saveAdmin(){
   if(url)localStorage.setItem(SUPA_URL_KEY,url);
   if(key)localStorage.setItem(SUPA_KEY_KEY,key);
   if(pid)localStorage.setItem(PROP_ID_KEY,pid);
+  // Clé IA dans S pour sync Supabase → tous appareils
+  var aiKeyVal=document.getElementById('apAnthropicKey').value.trim();
+  if(aiKeyVal){S.aiKey=aiKeyVal;localStorage.setItem(GROQ_KEY_STORE,aiKeyVal);localStorage.setItem(ANTHROPIC_KEY_STORE,aiKeyVal);}
   // Save gallery captions
   var items=S.gallery||[];
   items.forEach(function(item,i){var el=document.getElementById('gcap'+i);if(el)item.cap=el.value;});
@@ -2350,21 +2372,7 @@ function delFavicon(){
   var fl=document.getElementById('faviconLink');
   if(fl)fl.href='';
 }
-function stageImg(inp,type){
-  var f=inp.files[0];if(!f)return;
-  var r=new FileReader();
-  r.onload=function(e){
-    var raw=e.target.result;
-    // Compress immediately before staging
-    var maxW=type==='bg'?800:400;
-    var qual=type==='bg'?0.72:0.60;
-    compressImg(raw,maxW,qual,function(compressed){
-      staged[type]=compressed;
-      updatePreview(type,compressed);
-    });
-  };
-  r.readAsDataURL(f);
-}
+function stageImg(inp,type){var f=inp.files[0];if(!f)return;var r=new FileReader();r.onload=function(e){staged[type]=e.target.result;updatePreview(type,e.target.result);};r.readAsDataURL(f);}
 function deleteImg(type){staged[type]='';updatePreview(type,'');}
 function updatePreview(type,val){
   var isAv=type==='av',isBg=type==='bg',isHist=type==='histoire';
@@ -2672,7 +2680,7 @@ async function sendMsg(){
     currentWeatherCtx+memCtx+'\n'+hostCtx+histoireCtx+'\n\n--- DONNÉES DU LOGEMENT ---\n'+ctx;
   try{
     var aKey=getAnthropicKey()||getGroqKey();
-    if(!aKey){addBub('ai','⚙️ Clé API manquante. Admin → Supabase (code 051206) → champ 4 → colle ta clé Groq (gratuit sur console.groq.com).');document.getElementById('typing').classList.remove('on');document.getElementById('csBtn').disabled=false;return;}
+    if(!aKey){addBub('ai','Je suis désolé, je ne suis pas disponible pour le moment. Veuillez contacter votre hôte directement.');document.getElementById('typing').classList.remove('on');document.getElementById('csBtn').disabled=false;return;}
     var isGroq=aKey.startsWith('gsk_');
     var res;
     if(isGroq){
@@ -2750,7 +2758,7 @@ init();
           <div style="font-size:9px;color:var(--dust);text-align:center;" id="qrPropLabel"></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
             <button onclick="downloadQR()" style="background:var(--stone);color:#fff;border:none;border-radius:2px;padding:8px 14px;font-size:8px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit;">⬇ Télécharger</button>
-
+            <button onclick="saveQRToGallery()" style="background:var(--white);color:var(--stone);border:1px solid var(--border2);border-radius:2px;padding:8px 14px;font-size:8px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit;">📷 Galerie</button>
           </div>
           <div id="qrGalleryToast" style="display:none;color:#2d8a4e;font-size:10px;font-weight:600;letter-spacing:.5px;">✓ QR Code ajouté à la galerie</div>
         </div>
