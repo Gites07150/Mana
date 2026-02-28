@@ -682,6 +682,7 @@ async function supaFetch(path,method,body){
 
 async function cloudLoad(){
   var pid=getPropId();
+  // Essai avec colonnes bg/avatar séparées
   var data=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data,bg,avatar');
   if(data&&data.length>0){
     cloudReady=true;
@@ -690,6 +691,9 @@ async function cloudLoad(){
     if(data[0].avatar)obj.avatar=data[0].avatar;
     return obj;
   }
+  // Fallback : colonnes bg/avatar absentes, on essaie avec data seulement
+  var data2=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data');
+  if(data2&&data2.length>0){cloudReady=true;return data2[0].data;}
   cloudReady=false;return null;
 }
 
@@ -716,17 +720,16 @@ async function cloudSaveUpsert(propData){
     var avData=mainData.avatar||'';
     delete mainData.bg;
     delete mainData.avatar;
+    // Tenter avec colonnes séparées bg/avatar
     var payload={id:pid,data:mainData,updated_at:new Date().toISOString()};
     if(bgData)payload.bg=bgData;
     if(avData)payload.avatar=avData;
     var r=await fetch(url+'/rest/v1/properties',{method:'POST',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(payload)});
-    if(!r.ok){
-      // Fallback: colonnes bg/avatar peut-être absentes, réessayer sans
-      var payload2={id:pid,data:propData,updated_at:new Date().toISOString()};
-      var r2=await fetch(url+'/rest/v1/properties',{method:'POST',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(payload2)});
-      cloudReady=r2.ok;return r2.ok;
-    }
-    cloudReady=true;return true;
+    if(r.ok){cloudReady=true;return true;}
+    // Fallback: colonnes bg/avatar absentes → tout dans data
+    var propFull=JSON.parse(JSON.stringify(propData));
+    var r2=await fetch(url+'/rest/v1/properties',{method:'POST',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify({id:pid,data:propFull,updated_at:new Date().toISOString()})});
+    cloudReady=r2.ok;return r2.ok;
   }catch(e){cloudReady=false;return false;}
 }
 
