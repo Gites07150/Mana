@@ -750,7 +750,7 @@ function unlockSupabase(){
 }
 function doUnlockSupabase(){
   var code=document.getElementById('pwdIn').value;
-  var validCode=S&&S.pwd?S.pwd:'221081';
+  var validCode=S&&S.pwd?S.pwd:'051206';
   if(code===validCode){
     document.getElementById('pwdOv').classList.remove('on');
     window._supaUnlockMode=false;
@@ -1968,7 +1968,7 @@ async function compressAllImgs(obj){
     // avatar & bg
     ['avatar','bg'].forEach(function(k){
       if(clone[k]&&clone[k].startsWith('data:')){
-        var mw=k==='bg'?900:400;var ql=k==='bg'?0.85:0.5;
+        var mw=400;var ql=0.5;
         tasks.push(new Promise(function(res){compressImg(clone[k],mw,ql,function(v){clone[k]=v;res();});}));
       }
     });
@@ -2023,7 +2023,7 @@ async function save(){
 
 // Multi-logement (admin selector)
 function getKnownProps(){var r=localStorage.getItem('ths_known_props');return r?JSON.parse(r):[];}
-function addKnownProp(id,name){var arr=getKnownProps();if(!arr.find(function(x){return x.id===id;}))arr.push({id:id,name:name});localStorage.setItem('ths_known_props',JSON.stringify(arr));}
+function addKnownProp(id,name){var arr=getKnownProps();var ex=arr.find(function(x){return x.id===id;});if(ex){ex.name=name;}else{arr.push({id:id,name:name});}localStorage.setItem('ths_known_props',JSON.stringify(arr));}
 
 function refreshPropSelect(){
   var sel=document.getElementById('propSelect');if(!sel)return;
@@ -2040,41 +2040,67 @@ async function switchProp(id){
 }
 
 async function addProp(){
-  var name=prompt('Nom du nouveau logement :','Appartement 2');if(!name)return;
-  var id='prop'+Date.now();
-  localStorage.setItem(PROP_ID_KEY,id);
-  S=JSON.parse(JSON.stringify(DEF));S.name=name;
-  await save();refreshPropSelect();render();fillAdminFields();
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,14,6,.7);z-index:700;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML='<div style="background:var(--white);border-radius:6px;padding:24px;max-width:320px;width:100%;text-align:center;">'+
+    '<div style="font-size:13px;font-weight:600;color:var(--stone);margin-bottom:14px;letter-spacing:.5px;">Nouveau logement</div>'+
+    '<div style="font-size:10px;color:var(--dust);margin-bottom:6px;text-align:left;font-weight:600;letter-spacing:1px;text-transform:uppercase;">Nom du logement</div>'+
+    '<input id="addPropName" type="text" placeholder="Ex: Villa Mana 2" style="width:100%;border:1px solid var(--border2);border-radius:2px;padding:9px 12px;font-size:14px;font-family:inherit;margin-bottom:14px;background:var(--cream);">'+
+    '<div style="display:flex;gap:8px;">'+
+    '<button id="addCancelBtn" style="flex:1;padding:10px;border:1px solid var(--border2);background:none;border-radius:2px;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit;color:var(--dust);">Annuler</button>'+
+    '<button id="addConfirmBtn" style="flex:1;padding:10px;border:none;background:var(--stone);color:#fff;border-radius:2px;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:600;">Créer</button>'+
+    '</div></div>';
+  document.body.appendChild(overlay);
+  document.body.style.overflow='hidden';
+  setTimeout(function(){var el=document.getElementById('addPropName');if(el)el.focus();},200);
+  document.getElementById('addCancelBtn').onclick=function(){document.body.removeChild(overlay);document.body.style.overflow='';};
+  document.getElementById('addConfirmBtn').onclick=async function(){
+    var name=document.getElementById('addPropName').value.trim();
+    if(!name){document.getElementById('addPropName').style.borderColor='var(--red)';return;}
+    document.body.removeChild(overlay);document.body.style.overflow='';
+    var id='prop'+Date.now();
+    localStorage.setItem(PROP_ID_KEY,id);
+    S=JSON.parse(JSON.stringify(DEF));S.name=name;
+    await save();refreshPropSelect();render();fillAdminFields();
+  };
 }
 
 async function deleteProp(){
   var arr=getKnownProps();
-  if(arr.length<=1){alert('Impossible de supprimer le seul logement.');return;}
-  var cid=getPropId();
-  var propName=S.name||cid;
-  // Étape 1 : confirmation avec le nom du logement
-  if(!confirm('\u26a0\ufe0f Êtes-vous sûr de vouloir supprimer "'+propName+'" ?\n\nCette action est irréversible.'))return;
-  // Étape 2 : code de sécurité
-  var code=prompt('Pour confirmer la suppression de "'+propName+'", entrez le code de sécurité :');
-  if(code===null)return;
-  if(code.trim()!=='221081'){alert('Code incorrect. Suppression annulée.');return;}
-  // Supprimer dans Supabase
-  var url=getSupaUrl();var key=getSupaKey();
-  if(url&&key){
-    try{
-      await fetch(url+'/rest/v1/properties?id=eq.'+encodeURIComponent(cid),{
-        method:'DELETE',
-        headers:{'apikey':key,'Authorization':'Bearer '+key,'Content-Type':'application/json'}
-      });
-    }catch(e){console.error('Erreur suppression Supabase:',e);}
-  }
-  // Supprimer du localStorage
-  localStorage.removeItem('ths_data_'+cid);
-  var remain=arr.filter(function(p){return p.id!==cid;});
-  localStorage.setItem('ths_known_props',JSON.stringify(remain));
-  localStorage.setItem(PROP_ID_KEY,remain[0].id);
-  showToast('"'+propName+'" supprimé ✓');
-  await load();render();fillAdminFields();
+  if(arr.length<=1){showToast('Impossible de supprimer le seul logement.');return;}
+  var cid=getPropId();var propName=S.name||cid;
+  // Ouvre une modal de confirmation dans la page (pas de confirm/prompt iOS)
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,14,6,.7);z-index:700;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML='<div style="background:var(--white);border-radius:6px;padding:24px;max-width:320px;width:100%;text-align:center;">'+
+    '<div style="font-size:22px;margin-bottom:10px;">⚠️</div>'+
+    '<div style="font-size:14px;font-weight:600;color:var(--stone);margin-bottom:6px;">Supprimer "'+esc(propName)+'" ?</div>'+
+    '<div style="font-size:11px;color:var(--dust);margin-bottom:16px;">Cette action est irréversible.</div>'+
+    '<div style="font-size:10px;color:var(--dust);margin-bottom:6px;text-align:left;font-weight:600;letter-spacing:1px;text-transform:uppercase;">Code de confirmation</div>'+
+    '<input id="delCodeIn" type="password" placeholder="••••" style="width:100%;border:1px solid var(--border2);border-radius:2px;padding:9px 12px;font-size:14px;font-family:inherit;margin-bottom:6px;background:var(--cream);">'+
+    '<div id="delCodeErr" style="display:none;color:var(--red);font-size:10px;margin-bottom:8px;">Code incorrect</div>'+
+    '<div style="display:flex;gap:8px;margin-top:8px;">'+
+    '<button id="delCancelBtn" style="flex:1;padding:10px;border:1px solid var(--border2);background:none;border-radius:2px;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit;color:var(--dust);">Annuler</button>'+
+    '<button id="delConfirmBtn" style="flex:1;padding:10px;border:none;background:var(--red);color:#fff;border-radius:2px;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:600;">Supprimer</button>'+
+    '</div></div>';
+  document.body.appendChild(overlay);
+  document.body.style.overflow='hidden';
+  setTimeout(function(){var el=document.getElementById('delCodeIn');if(el)el.focus();},200);
+  document.getElementById('delCancelBtn').onclick=function(){document.body.removeChild(overlay);document.body.style.overflow='';};
+  document.getElementById('delConfirmBtn').onclick=async function(){
+    var code=document.getElementById('delCodeIn').value.trim();
+    var validCode=S&&S.pwd?S.pwd:'051206';
+    if(code!==validCode){document.getElementById('delCodeErr').style.display='block';document.getElementById('delCodeIn').value='';return;}
+    document.body.removeChild(overlay);document.body.style.overflow='';
+    var url=getSupaUrl();var key=getSupaKey();
+    if(url&&key){try{await fetch(url+'/rest/v1/properties?id=eq.'+encodeURIComponent(cid),{method:'DELETE',headers:{'apikey':key,'Authorization':'Bearer '+key,'Content-Type':'application/json'}});}catch(e){}}
+    localStorage.removeItem('ths_data_'+cid);
+    var remain=arr.filter(function(p){return p.id!==cid;});
+    localStorage.setItem('ths_known_props',JSON.stringify(remain));
+    localStorage.setItem(PROP_ID_KEY,remain[0].id);
+    showToast('"'+propName+'" supprimé ✓');
+    await load();render();fillAdminFields();refreshPropSelect();
+  };
 }
 
 // ═══════════════════════════════════════════════
