@@ -249,7 +249,7 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
 .rte-sep{width:1px;background:var(--border2);margin:2px 3px;height:18px;align-self:center;}
 .rte-ta{border-radius:0 0 2px 2px!important;margin-top:0!important;}
 /* RÉSEAUX SOCIAUX */
-.social-bar{display:flex;gap:10px;padding:18px 16px 8px;justify-content:center;flex-wrap:wrap;}
+.social-bar{display:flex;gap:10px;padding:0;justify-content:center;flex-wrap:wrap;}
 .social-btn{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:30px;text-decoration:none;font-size:12px;font-weight:600;letter-spacing:.3px;transition:opacity .15s;border:none;cursor:pointer;font-family:inherit;}
 .social-btn:active{opacity:.75;}
 .social-btn svg{width:18px;height:18px;flex-shrink:0;}
@@ -577,7 +577,13 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
 
     <div id="socialBar" class="social-bar"></div>
 
-    <div class="footer"><div class="footer-line"></div><div class="footer-txt" id="footerTxt">Merci pour votre séjour</div></div>
+    <div class="footer">
+      <div class="footer-line"></div>
+      <div class="footer-txt" id="footerTxt">Merci pour votre séjour</div>
+      <div style="margin-top:10px;">
+        <a onclick="openCGV()" style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--fog);text-decoration:none;cursor:pointer;border-bottom:1px solid var(--fog);padding-bottom:1px;">Conditions générales</a>
+      </div>
+    </div>
   </div>
 
   <div class="screen" id="s-page">
@@ -726,8 +732,13 @@ async function cloudSaveUpsert(propData){
     if(avData)payload.avatar=avData;
     var r=await fetch(url+'/rest/v1/properties',{method:'POST',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(payload)});
     if(r.ok){cloudReady=true;return true;}
-    // Fallback: colonnes bg/avatar absentes → tout dans data
+    // Fallback: colonnes bg/avatar absentes → compresser bg et tout mettre dans data
     var propFull=JSON.parse(JSON.stringify(propData));
+    await new Promise(function(res){
+      if(propFull.bg&&propFull.bg.startsWith('data:')){compressImg(propFull.bg,800,0.75,function(v){propFull.bg=v;res();});}
+      else if(propFull.avatar&&propFull.avatar.startsWith('data:')){compressImg(propFull.avatar,400,0.5,function(v){propFull.avatar=v;res();});}
+      else res();
+    });
     var r2=await fetch(url+'/rest/v1/properties',{method:'POST',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify({id:pid,data:propFull,updated_at:new Date().toISOString()})});
     cloudReady=r2.ok;return r2.ok;
   }catch(e){cloudReady=false;return false;}
@@ -1777,7 +1788,7 @@ function collectSocials(filterEmpty){
 function renderSocialBar(){
   var el=document.getElementById('socialBar');if(!el)return;
   var socials=(S.socials||[]).filter(function(s){return s.url&&s.url.trim();});
-  if(!socials.length){el.style.cssText='display:none;';el.innerHTML='';return;}
+  if(!socials.length){el.style.cssText='display:none;padding:0;pointer-events:none;';el.innerHTML='';return;}
   el.style.cssText='display:flex;flex-direction:row;gap:14px;padding:10px 16px 14px;justify-content:center;align-items:center;flex-wrap:wrap;';
   el.innerHTML=
     socials.map(function(s){
@@ -1966,12 +1977,11 @@ async function compressAllImgs(obj){
     var clone=JSON.parse(JSON.stringify(obj));
     var tasks=[];
     // avatar & bg
-    ['avatar','bg'].forEach(function(k){
-      if(clone[k]&&clone[k].startsWith('data:')){
-        var mw=400;var ql=0.5;
-        tasks.push(new Promise(function(res){compressImg(clone[k],mw,ql,function(v){clone[k]=v;res();});}));
-      }
-    });
+    // avatar compressé petit, bg NON compressé (colonne séparée, qualité maximale)
+    if(clone['avatar']&&clone['avatar'].startsWith('data:')){
+      tasks.push(new Promise(function(res){compressImg(clone['avatar'],400,0.5,function(v){clone['avatar']=v;res();});}));
+    }
+    // bg : pas de compression — gardé en qualité originale
     // histoire img
     if(clone.histoire&&clone.histoire.img&&clone.histoire.img.startsWith('data:')){
       tasks.push(new Promise(function(res){compressImg(clone.histoire.img,800,0.6,function(v){clone.histoire.img=v;res();});}));
@@ -2161,7 +2171,7 @@ function updateChatHostBar(){
   } else {bar.classList.remove('on');}
 }
 
-function getRows(k){var base=(LANGS[lng]||LANGS['fr']).rows[k]||[];var ov=(S.ov[lng]||{})[k];if(!ov)return base;return base.map(function(r,i){return Object.assign({},r,ov[i]?{t:ov[i].t||r.t,v:ov[i].v||r.v}:{});});}
+function getRows(k){var base=(LANGS[lng]||LANGS['fr']).rows[k]||[];var ov=(S.ov[lng]||{})[k];if(!ov)return base;var merged=base.map(function(r,i){if(ov[i]&&ov[i]._deleted)return null;return Object.assign({},r,ov[i]?{t:ov[i].t||r.t,v:ov[i].v||r.v,addr:ov[i].addr||r.addr||'',map:ov[i].map||r.map||false,ml:ov[i].ml||r.ml||'Voir'}:{});}).filter(Boolean);var extras=ov.slice(base.length).filter(function(x){return x&&!x._deleted&&x.t;});return merged.concat(extras);}
 function getPlaces(key){if(S.places&&S.places[key]&&S.places[key].length>0)return S.places[key];return(LANGS[lng]||LANGS['fr']).rows[key]||[];}
 function show(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
 
@@ -2227,8 +2237,18 @@ function buildPage(key){
     return h+'</div>';
   }
   var h='<div class="page-body">';
-  rows.filter(function(r){return !r.cl;}).forEach(function(r){
-    h+='<div class="ic"><div class="ic-lbl">'+esc(r.t)+'</div>';
+  rows.filter(function(r){return !r.cl;}).forEach(function(r,i){
+    h+='<div class="ic" id="pageRow'+i+'">';
+    if(adm){
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
+      h+='<div class="ic-lbl" style="margin-bottom:0;">'+esc(r.t)+'</div>';
+      h+='<div style="display:flex;gap:5px;">';
+      h+='<span onclick="inlineEditRow(''+key+'','+i+')" style="font-size:9px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;padding:3px 7px;border:1px solid var(--border2);border-radius:2px;color:var(--bark);">✎ Modifier</span>';
+      h+='<span onclick="inlineDelRow(''+key+'','+i+')" style="font-size:9px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;padding:3px 7px;border:1px solid rgba(176,80,80,.3);border-radius:2px;color:var(--red);">✕</span>';
+      h+='</div></div>';
+    } else {
+      h+='<div class="ic-lbl">'+esc(r.t)+'</div>';
+    }
     if(r.cp){h+='<div class="ic-val-mono">'+esc(r.v)+'</div><button class="btn-main" onclick="doCopy(\''+r.v.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">Copier le mot de passe</button>';}
     else{h+='<div class="ic-val">'+richVal(r.v)+'</div>';
       if(r.map&&r.addr){h+='<div style="margin-top:11px;display:flex;gap:7px;flex-wrap:wrap;"><button class="btn-main" onclick="openMaps(\''+r.addr.replace(/'/g,"\\'")+'\')">'+esc(r.ml)+'</button><button class="btn-sec" onclick="openGMaps(\''+r.addr.replace(/'/g,"\\'")+'\')">Google Maps</button></div><div class="map-card" style="margin-top:10px;">'+mapEmbed(r.addr)+'</div>';}
@@ -2237,8 +2257,71 @@ function buildPage(key){
     h+='</div>';
   });
   rows.filter(function(r){return r.cl;}).forEach(function(r){var items=r.v.split('\n').filter(Boolean);h+='<div class="cl-card"><div class="cl-hd"><span class="cl-hd-txt">'+esc(r.t)+'</span></div>'+items.map(function(c){return '<div class="cl-row" onclick="togChk(this)"><div class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><span class="cl-txt">'+richVal(c)+'</span></div>';}).join('')+'</div>';});
+  if(adm){h+='<div style="padding:8px 0 16px;"><button onclick="inlineAddRow(''+key+'')" style="width:100%;padding:10px;border:1px dashed var(--border2);background:none;border-radius:2px;font-size:9px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:var(--bark);font-family:inherit;">+ Ajouter une ligne</button></div>';}
   return h+'</div>';
 }
+
+// ═══════════════════════════════════════════════
+// INLINE EDIT ROWS
+// ═══════════════════════════════════════════════
+var _inlineEditKey=null;
+function inlineEditRow(key,i){
+  _inlineEditKey=key;
+  var rows=getRows(key);
+  var r=rows[i]||{t:'',v:'',addr:''};
+  var el=document.getElementById('pageRow'+i);
+  if(!el)return;
+  var hasAddr=!!(r.addr||r.map);
+  el.innerHTML=
+    '<div style="background:var(--cream);border-radius:4px;padding:12px;margin:-4px -4px 0;">' +
+    '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--bark);font-weight:600;margin-bottom:10px;">Modifier la ligne</div>' +
+    '<div style="margin-bottom:8px;"><label style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--dust);display:block;margin-bottom:4px;">Titre</label>' +
+    '<input id="ile_t'+i+'" value="'+esc(r.t)+'" style="width:100%;border:1px solid var(--border2);border-radius:2px;padding:8px 10px;font-size:13px;font-family:inherit;background:var(--white);"></div>' +
+    '<div style="margin-bottom:8px;"><label style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--dust);display:block;margin-bottom:4px;">Contenu</label>' +
+    '<textarea id="ile_v'+i+'" rows="3" style="width:100%;border:1px solid var(--border2);border-radius:2px;padding:8px 10px;font-size:13px;font-family:inherit;background:var(--white);resize:vertical;">'+esc(r.v)+'</textarea></div>' +
+    '<div style="margin-bottom:12px;"><label style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--dust);display:block;margin-bottom:4px;">Adresse Maps (optionnel)</label>' +
+    '<input id="ile_a'+i+'" value="'+esc(r.addr||'')+'" placeholder="Ex: Villa Mana Vallon Pont d'Arc" style="width:100%;border:1px solid var(--border2);border-radius:2px;padding:8px 10px;font-size:13px;font-family:inherit;background:var(--white);"></div>' +
+    '<div style="display:flex;gap:8px;">' +
+    '<button onclick="inlineSaveRow(''+key+'','+i+')" style="flex:2;padding:9px;border:none;background:var(--stone);color:#fff;border-radius:2px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:600;">Enregistrer</button>' +
+    '<button onclick="openPage(''+key+'')" style="flex:1;padding:9px;border:1px solid var(--border2);background:none;border-radius:2px;font-size:9px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;color:var(--dust);font-family:inherit;">Annuler</button>' +
+    '</div></div>';
+}
+async function inlineSaveRow(key,i){
+  var tEl=document.getElementById('ile_t'+i);
+  var vEl=document.getElementById('ile_v'+i);
+  var aEl=document.getElementById('ile_a'+i);
+  if(!tEl||!vEl)return;
+  if(!S.ov[lng])S.ov[lng]={};
+  if(!S.ov[lng][key])S.ov[lng][key]=[];
+  var base=(LANGS[lng]||LANGS['fr']).rows[key]||[];
+  // Remplir jusqu'à l'index si nécessaire
+  while(S.ov[lng][key].length<=i)S.ov[lng][key].push(null);
+  var addr=aEl?aEl.value.trim():'';
+  S.ov[lng][key][i]={t:tEl.value,v:vEl.value,addr:addr,map:!!addr,ml:'Voir sur la carte'};
+  // Aussi propager l'addr dans la ligne de base si pas déjà là
+  await save();
+  showToast('Enregistré ✓');
+  openPage(key);
+}
+async function inlineDelRow(key,i){
+  if(!S.ov[lng])S.ov[lng]={};
+  if(!S.ov[lng][key])S.ov[lng][key]=[];
+  while(S.ov[lng][key].length<=i)S.ov[lng][key].push(null);
+  S.ov[lng][key][i]={_deleted:true,t:'',v:''};
+  await save();
+  showToast('Ligne supprimée');
+  openPage(key);
+}
+async function inlineAddRow(key){
+  if(!S.ov[lng])S.ov[lng]={};
+  if(!S.ov[lng][key])S.ov[lng][key]=[];
+  S.ov[lng][key].push({t:'Nouvelle ligne',v:'À compléter',addr:'',map:false,ml:'Voir'});
+  await save();
+  openPage(key);
+  // Scroll en bas
+  setTimeout(function(){var pc=document.getElementById('pageContent');if(pc)pc.scrollTop=pc.scrollHeight;},100);
+}
+// ═══════════════════════════════════════════════
 
 function doCopy(txt){var L=LANGS[lng]||LANGS['fr'];function fb(){try{var e=document.createElement('textarea');e.value=txt;e.style.cssText='position:fixed;opacity:0';document.body.appendChild(e);e.focus();e.select();document.execCommand('copy');document.body.removeChild(e);}catch(x){}}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){showToast(L.cp);},function(){fb();showToast(L.cp);});}else{fb();showToast(L.cp);}}
 function showToast(m){var el=document.getElementById('toast');document.getElementById('t-txt').textContent=m;el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(function(){el.classList.remove('on');},2000);}
@@ -2542,12 +2625,23 @@ async function placeAddrSearch(inp,i){
     try{
       var r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=5&addressdetails=1',{headers:{'Accept-Language':'fr','User-Agent':'GiteApp/1.0'}});
       var d=await r.json();
-      if(!d.length){sug.innerHTML='<div class="addr-suggest-item" style="color:var(--dust);">Aucun résultat</div>';return;}
+      if(!d.length){
+        // Nominatim ne trouve pas → proposer d'utiliser l'adresse telle quelle
+        sug.innerHTML='<div class="addr-suggest-item" style="color:var(--dust);font-style:italic;">Aucun résultat — </div>'+
+          '<div class="addr-suggest-item" onclick="pickAddrRaw('+i+',''+q.replace(/'/g,'\\&#39;')+'')" style="color:var(--bark);font-weight:600;">✓ Utiliser : '+q+'</div>';
+        return;
+      }
       sug.innerHTML=d.map(function(p){
         return '<div class="addr-suggest-item" onclick="pickAddr('+i+','+JSON.stringify(p.display_name).replace(/'/g,"&#39;")+','+p.lat+','+p.lon+')">'+p.display_name+'</div>';
       }).join('');
     }catch(e){sug.innerHTML='';}
   },400);
+}
+function pickAddrRaw(i,addr){
+  var inp=document.getElementById('pa'+i);
+  if(inp)inp.value=addr;
+  var sug=document.getElementById('paS'+i);
+  if(sug)sug.remove();
 }
 function pickAddr(i,name,lat,lng){
   var inp=document.getElementById('pa'+i);
@@ -2773,6 +2867,11 @@ async function sendMsg(){
 function sendSug(btn){document.getElementById('ci').value=btn.textContent;sendMsg();}
 
 // ═══════════════════════════════════════════════
+// CGV
+// ═══════════════════════════════════════════════
+function openCGV(){document.getElementById('cgvPanel').style.display='block';document.getElementById('cgvPanel').scrollTop=0;}
+
+// ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
 async function init(){
@@ -2819,12 +2918,62 @@ init();
           <div style="font-size:9px;color:var(--dust);text-align:center;" id="qrPropLabel"></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
             <button onclick="downloadQR()" style="background:var(--stone);color:#fff;border:none;border-radius:2px;padding:8px 14px;font-size:8px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit;">⬇ Télécharger</button>
-            <button onclick="saveQRToGallery()" style="background:var(--white);color:var(--stone);border:1px solid var(--border2);border-radius:2px;padding:8px 14px;font-size:8px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit;">📷 Galerie</button>
+
           </div>
           <div id="qrGalleryToast" style="display:none;color:#2d8a4e;font-size:10px;font-weight:600;letter-spacing:.5px;">✓ QR Code ajouté à la galerie</div>
         </div>
       </div>
       <button onclick="document.getElementById('qrPanel').style.display='none'" style="width:100%;background:none;border:1px solid var(--border2);border-radius:2px;padding:9px;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--dust);cursor:pointer;font-family:inherit;">Fermer</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- CGV PANEL -->
+<div id="cgvPanel" style="display:none;position:fixed;inset:0;z-index:450;background:rgba(20,14,6,.7);overflow-y:auto;">
+  <div style="background:var(--cream);max-width:430px;margin:0 auto;min-height:100vh;padding:0 0 60px;">
+    <div style="background:var(--white);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;">
+      <span style="font-size:9px;letter-spacing:3px;text-transform:uppercase;font-weight:600;color:var(--stone);">Conditions générales</span>
+      <span onclick="document.getElementById('cgvPanel').style.display='none'" style="cursor:pointer;font-size:18px;color:var(--dust);line-height:1;">×</span>
+    </div>
+    <div style="padding:24px 20px;font-size:13px;line-height:1.8;color:var(--stone);">
+
+      <div style="font-family:'Cormorant Garamond',serif;font-size:20px;margin-bottom:20px;color:var(--stone);">Conditions Générales de Location</div>
+
+      <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--bark);margin-bottom:8px;font-weight:600;">1. Objet</div>
+      <p style="margin-bottom:16px;color:var(--dust);">Les présentes conditions régissent la location saisonnière du logement proposé par l'hôte. Toute réservation implique l'acceptation pleine et entière des présentes conditions.</p>
+
+      <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--bark);margin-bottom:8px;font-weight:600;">2. Réservation & paiement</div>
+      <p style="margin-bottom:16px;color:var(--dust);">La réservation est confirmée à réception du paiement. Le solde est dû conformément aux conditions de la plateforme de réservation utilisée (Airbnb, Booking, etc.).</p>
+
+      <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--bark);margin-bottom:8px;font-weight:600;">3. Arrivée & départ</div>
+      <p style="margin-bottom:16px;color:var(--dust);">L'heure d'arrivée et de départ sont précisées dans les informations du logement. Tout dépassement devra être validé préalablement par l'hôte.</p>
+
+      <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--bark);margin-bottom:8px;font-weight:600;">4. Capacité & occupation</div>
+      <p style="margin-bottom:16px;color:var(--dust);">Le logement est loué pour le nombre de personnes indiqué lors de la réservation. Il est interdit d'accueillir un nombre de personnes supérieur à la capacité maximale autorisée.</p>
+
+      <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--bark);margin-bottom:8px;font-weight:600;">5. Règlement intérieur</div>
+      <p style="margin-bottom:16px;color:var(--dust);">Le locataire s'engage à respecter le règlement intérieur du logement (non-fumeur, animaux, nuisances sonores, fêtes, etc.) tel qu'indiqué dans les informations de séjour.</p>
+
+      <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--bark);margin-bottom:8px;font-weight:600;">6. État des lieux & dépôt de garantie</div>
+      <p style="margin-bottom:16px;color:var(--dust);">Le locataire s'engage à rendre le logement dans l'état dans lequel il l'a trouvé. Tout dommage constaté pourra donner lieu à retenue sur le dépôt de garantie.</p>
+
+      <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--bark);margin-bottom:8px;font-weight:600;">7. Annulation</div>
+      <p style="margin-bottom:16px;color:var(--dust);">Les conditions d'annulation applicables sont celles définies lors de la réservation sur la plateforme concernée. Aucun remboursement ne sera effectué en dehors de ces conditions.</p>
+
+      <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--bark);margin-bottom:8px;font-weight:600;">8. Responsabilité</div>
+      <p style="margin-bottom:16px;color:var(--dust);">L'hôte ne saurait être tenu responsable des dommages, pertes ou vols survenant durant le séjour. Le locataire est invité à souscrire une assurance villégiature.</p>
+
+      <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--bark);margin-bottom:8px;font-weight:600;">9. Données personnelles</div>
+      <p style="margin-bottom:16px;color:var(--dust);">Les données collectées lors de la réservation sont utilisées uniquement dans le cadre de la gestion de votre séjour et ne sont pas transmises à des tiers.</p>
+
+      <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--bark);margin-bottom:8px;font-weight:600;">10. Droit applicable</div>
+      <p style="margin-bottom:24px;color:var(--dust);">Les présentes conditions sont soumises au droit français. Tout litige sera porté devant les juridictions compétentes du ressort du lieu du logement.</p>
+
+      <div style="height:1px;background:var(--border);margin-bottom:20px;"></div>
+      <p style="font-size:11px;color:var(--fog);text-align:center;letter-spacing:1px;">Ces conditions sont fournies à titre indicatif.<br>Consultez un professionnel pour un document personnalisé.</p>
+
+      <button onclick="document.getElementById('cgvPanel').style.display='none'" style="width:100%;margin-top:20px;background:none;border:1px solid var(--border2);border-radius:2px;padding:11px;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--dust);cursor:pointer;font-family:inherit;">Fermer</button>
     </div>
   </div>
 </div>
