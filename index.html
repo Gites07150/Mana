@@ -734,9 +734,9 @@ async function cloudSaveUpsert(propData){
     if(r.ok){cloudReady=true;return true;}
     // Fallback: colonnes bg/avatar absentes → compresser bg et tout mettre dans data
     var propFull=JSON.parse(JSON.stringify(propData));
+    // Fallback : pas de compression du bg pour préserver la qualité
     await new Promise(function(res){
-      if(propFull.bg&&propFull.bg.startsWith('data:')){compressImg(propFull.bg,800,0.75,function(v){propFull.bg=v;res();});}
-      else if(propFull.avatar&&propFull.avatar.startsWith('data:')){compressImg(propFull.avatar,400,0.5,function(v){propFull.avatar=v;res();});}
+      if(propFull.avatar&&propFull.avatar.startsWith('data:')){compressImg(propFull.avatar,400,0.5,function(v){propFull.avatar=v;res();});}
       else res();
     });
     var r2=await fetch(url+'/rest/v1/properties',{method:'POST',headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify({id:pid,data:propFull,updated_at:new Date().toISOString()})});
@@ -2012,9 +2012,10 @@ async function compressAllImgs(obj){
 async function save(){
   try{
     var compressed=await compressAllImgs(S);
-    // Update S with compressed images
-    S.avatar=compressed.avatar;S.bg=compressed.bg;
-    if(S.histoire)S.histoire.img=compressed.histoire?compressed.histoire.img:S.histoire.img;
+    // NE PAS écraser S.bg — garder l'original pour éviter dégradation progressive
+    // Seulement mettre à jour avatar, gallery, manuel avec versions compressées
+    if(compressed.avatar)S.avatar=compressed.avatar;
+    if(S.histoire&&compressed.histoire)S.histoire.img=compressed.histoire.img;
     if(compressed.gallery)S.gallery=compressed.gallery;
     if(compressed.manuel)S.manuel=compressed.manuel;
     try{
@@ -2426,7 +2427,7 @@ function exitAdmin(){
   document.getElementById('adminBar').classList.remove('on');
   document.getElementById('adminPanel').classList.remove('on');
   document.getElementById('mainGrid').classList.remove('adm');
-  load().then(function(){render();});
+  render();
 }
 
 async function saveAdmin(){
@@ -2488,10 +2489,12 @@ async function saveAdmin(){
     }
     _faqPendingDeletes=[];
   }
-  await save();
+  // Quitter immédiatement, sauvegarder en arrière-plan
   addKnownProp(getPropId(),S.name);
-  render();showToast('Enregistré ✓');
+  render();
   exitAdmin();
+  showToast('Enregistrement…');
+  save().then(function(){showToast('Enregistré ✓');}).catch(function(e){showToast('⚠️ Erreur sauvegarde');});
   }catch(e){console.error('saveAdmin error:',e);showToast('⚠️ Erreur: '+e.message);}
 }
 
