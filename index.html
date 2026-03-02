@@ -821,6 +821,7 @@ function updateCloudStatusUI(){
 }
 
 function showSyncBar(msg,warn){
+  if(!adm)return; // Jamais visible pour les clients
   var b=document.getElementById('syncBar');b.textContent=msg;
   b.className='sync-bar show'+(warn?' warn':'');
   clearTimeout(b._t);b._t=setTimeout(function(){b.classList.remove('show');},3000);
