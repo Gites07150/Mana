@@ -581,7 +581,7 @@ html,body{width:100%;min-height:100%;font-family:'Jost',sans-serif;background:va
       <div class="footer-line"></div>
       <div class="footer-txt" id="footerTxt">Merci pour votre séjour</div>
       <div style="margin-top:10px;">
-        <a onclick="openCGV()" style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--fog);text-decoration:none;cursor:pointer;border-bottom:1px solid var(--fog);padding-bottom:1px;">Conditions générales</a>
+        <a onclick="openCGV()" style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dust);text-decoration:none;cursor:pointer;border-bottom:1px solid var(--dust);padding-bottom:2px;">Conditions générales</a>
       </div>
     </div>
   </div>
@@ -1448,6 +1448,8 @@ function renderGalleryAdminList(){
 
 function addGalleryItem(){
   if(!S.gallery)S.gallery=[];
+  // Nettoyer les QR codes qui auraient été sauvés dans la galerie
+  S.gallery=S.gallery.filter(function(g){return !g.isQR;});
   if(!S.avis)S.avis={msg:'',liens:[]};
   if(!S.avis.liens)S.avis.liens=[];
   S.gallery.push({src:'',cap:''});
