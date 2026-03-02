@@ -2243,8 +2243,8 @@ function buildPage(key){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
       h+='<div class="ic-lbl" style="margin-bottom:0;">'+esc(r.t)+'</div>';
       h+='<div style="display:flex;gap:5px;">';
-      h+='<span onclick="inlineEditRow(''+key+'','+i+')" style="font-size:9px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;padding:3px 7px;border:1px solid var(--border2);border-radius:2px;color:var(--bark);">✎ Modifier</span>';
-      h+='<span onclick="inlineDelRow(''+key+'','+i+')" style="font-size:9px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;padding:3px 7px;border:1px solid rgba(176,80,80,.3);border-radius:2px;color:var(--red);">✕</span>';
+      h+='<span onclick="inlineEditRow(this)" data-key="'+key+'" data-i="'+i+'" style="font-size:9px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;padding:3px 7px;border:1px solid var(--border2);border-radius:2px;color:var(--bark);">✎ Modifier</span>';
+      h+='<span onclick="inlineDelRow(this)" data-key="'+key+'" data-i="'+i+'" style="font-size:9px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;padding:3px 7px;border:1px solid rgba(176,80,80,.3);border-radius:2px;color:var(--red);">✕</span>';
       h+='</div></div>';
     } else {
       h+='<div class="ic-lbl">'+esc(r.t)+'</div>';
@@ -2257,7 +2257,7 @@ function buildPage(key){
     h+='</div>';
   });
   rows.filter(function(r){return r.cl;}).forEach(function(r){var items=r.v.split('\n').filter(Boolean);h+='<div class="cl-card"><div class="cl-hd"><span class="cl-hd-txt">'+esc(r.t)+'</span></div>'+items.map(function(c){return '<div class="cl-row" onclick="togChk(this)"><div class="chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><span class="cl-txt">'+richVal(c)+'</span></div>';}).join('')+'</div>';});
-  if(adm){h+='<div style="padding:8px 0 16px;"><button onclick="inlineAddRow(''+key+'')" style="width:100%;padding:10px;border:1px dashed var(--border2);background:none;border-radius:2px;font-size:9px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:var(--bark);font-family:inherit;">+ Ajouter une ligne</button></div>';}
+  if(adm){h+='<div style="padding:8px 0 16px;"><button onclick="inlineAddRow(this)" data-key="'+key+'" style="width:100%;padding:10px;border:1px dashed var(--border2);background:none;border-radius:2px;font-size:9px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:var(--bark);font-family:inherit;">+ Ajouter une ligne</button></div>';}
   return h+'</div>';
 }
 
@@ -2265,7 +2265,7 @@ function buildPage(key){
 // INLINE EDIT ROWS
 // ═══════════════════════════════════════════════
 var _inlineEditKey=null;
-function inlineEditRow(key,i){
+function inlineEditRow(el){var key=el.dataset.key;var i=parseInt(el.dataset.i);
   _inlineEditKey=key;
   var rows=getRows(key);
   var r=rows[i]||{t:'',v:'',addr:''};
@@ -2280,13 +2280,13 @@ function inlineEditRow(key,i){
     '<div style="margin-bottom:8px;"><label style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--dust);display:block;margin-bottom:4px;">Contenu</label>' +
     '<textarea id="ile_v'+i+'" rows="3" style="width:100%;border:1px solid var(--border2);border-radius:2px;padding:8px 10px;font-size:13px;font-family:inherit;background:var(--white);resize:vertical;">'+esc(r.v)+'</textarea></div>' +
     '<div style="margin-bottom:12px;"><label style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--dust);display:block;margin-bottom:4px;">Adresse Maps (optionnel)</label>' +
-    '<input id="ile_a'+i+'" value="'+esc(r.addr||'')+'" placeholder="Ex: Villa Mana Vallon Pont d'Arc" style="width:100%;border:1px solid var(--border2);border-radius:2px;padding:8px 10px;font-size:13px;font-family:inherit;background:var(--white);"></div>' +
+    '<input id="ile_a'+i+'" value="'+esc(r.addr||'')+'" placeholder="Ex: Villa Mana Vallon Pont d&#39;Arc" style="width:100%;border:1px solid var(--border2);border-radius:2px;padding:8px 10px;font-size:13px;font-family:inherit;background:var(--white);"></div>' +
     '<div style="display:flex;gap:8px;">' +
-    '<button onclick="inlineSaveRow(''+key+'','+i+')" style="flex:2;padding:9px;border:none;background:var(--stone);color:#fff;border-radius:2px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:600;">Enregistrer</button>' +
-    '<button onclick="openPage(''+key+'')" style="flex:1;padding:9px;border:1px solid var(--border2);background:none;border-radius:2px;font-size:9px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;color:var(--dust);font-family:inherit;">Annuler</button>' +
+    '<button onclick="inlineSaveRow(this)" data-key="'+key+'" data-i="'+i+'" style="flex:2;padding:9px;border:none;background:var(--stone);color:#fff;border-radius:2px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:600;">Enregistrer</button>' +
+    '<button onclick="openPage(this.dataset.key)" data-key="'+key+'" style="flex:1;padding:9px;border:1px solid var(--border2);background:none;border-radius:2px;font-size:9px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;color:var(--dust);font-family:inherit;">Annuler</button>' +
     '</div></div>';
 }
-async function inlineSaveRow(key,i){
+async function inlineSaveRow(el){var key=el.dataset.key;var i=parseInt(el.dataset.i);
   var tEl=document.getElementById('ile_t'+i);
   var vEl=document.getElementById('ile_v'+i);
   var aEl=document.getElementById('ile_a'+i);
@@ -2303,7 +2303,7 @@ async function inlineSaveRow(key,i){
   showToast('Enregistré ✓');
   openPage(key);
 }
-async function inlineDelRow(key,i){
+async function inlineDelRow(el){var key=el.dataset.key;var i=parseInt(el.dataset.i);
   if(!S.ov[lng])S.ov[lng]={};
   if(!S.ov[lng][key])S.ov[lng][key]=[];
   while(S.ov[lng][key].length<=i)S.ov[lng][key].push(null);
@@ -2312,7 +2312,7 @@ async function inlineDelRow(key,i){
   showToast('Ligne supprimée');
   openPage(key);
 }
-async function inlineAddRow(key){
+async function inlineAddRow(el){var key=el.dataset.key;
   if(!S.ov[lng])S.ov[lng]={};
   if(!S.ov[lng][key])S.ov[lng][key]=[];
   S.ov[lng][key].push({t:'Nouvelle ligne',v:'À compléter',addr:'',map:false,ml:'Voir'});
@@ -2622,23 +2622,29 @@ async function placeAddrSearch(inp,i){
   if(!sug){sug=document.createElement('div');sug.id='paS'+i;sug.className='addr-suggest';inp.parentNode.appendChild(sug);}
   if(q.length<3){sug.innerHTML='';return;}
   _addrTimer[i]=setTimeout(async function(){
+    // Stocker l'adresse brute et proposer immédiatement
+    window._rawAddrMap=window._rawAddrMap||{};
+    window._rawAddrMap[i]=q;
+    sug.innerHTML='<div class="addr-suggest-item" onclick="pickAddrRaw('+i+')" style="color:var(--bark);font-weight:600;">✓ Utiliser : '+q+'</div>';
     try{
-      var r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=5&addressdetails=1',{headers:{'Accept-Language':'fr','User-Agent':'GiteApp/1.0'}});
+      var ctrl=new AbortController();
+      var tid=setTimeout(function(){ctrl.abort();},3000);
+      var r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=5&addressdetails=1',{headers:{'Accept-Language':'fr','User-Agent':'GiteApp/1.0'},signal:ctrl.signal});
+      clearTimeout(tid);
       var d=await r.json();
-      if(!d.length){
-        // Nominatim ne trouve pas → proposer d'utiliser l'adresse telle quelle
-        sug.innerHTML='<div class="addr-suggest-item" style="color:var(--dust);font-style:italic;">Aucun résultat — </div>'+
-          '<div class="addr-suggest-item" onclick="pickAddrRaw('+i+',''+q.replace(/'/g,'\\&#39;')+'')" style="color:var(--bark);font-weight:600;">✓ Utiliser : '+q+'</div>';
-        return;
+      if(d.length){
+        var items=d.map(function(p){
+          var safe=p.display_name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+          return '<div class="addr-suggest-item" onclick="pickAddr('+i+',\''+safe+'\','+p.lat+','+p.lon+')">'+p.display_name+'</div>';
+        }).join('');
+        sug.innerHTML='<div class="addr-suggest-item" onclick="pickAddrRaw('+i+')" style="color:var(--bark);font-weight:600;">✓ Utiliser : '+q+'</div>'+items;
       }
-      sug.innerHTML=d.map(function(p){
-        return '<div class="addr-suggest-item" onclick="pickAddr('+i+','+JSON.stringify(p.display_name).replace(/'/g,"&#39;")+','+p.lat+','+p.lon+')">'+p.display_name+'</div>';
-      }).join('');
-    }catch(e){sug.innerHTML='';}
+    }catch(e){}
   },400);
 }
-function pickAddrRaw(i,addr){
+function pickAddrRaw(i){
   var inp=document.getElementById('pa'+i);
+  var addr=(window._rawAddrMap&&window._rawAddrMap[i])||'';
   if(inp)inp.value=addr;
   var sug=document.getElementById('paS'+i);
   if(sug)sug.remove();
