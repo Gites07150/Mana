@@ -2200,47 +2200,59 @@ function unesc(s){return(s||'').replace(/&amp;/g,'&').replace(/&quot;/g,'"').rep
 // ═══════════════════════════════════════════════
 // BUILD PAGE
 // ═══════════════════════════════════════════════
+// ── Render une card de place (restaurants/bars/activites/epiceries/services) ──
+function renderPlaceCard(r,i,key){
+  var L=LANGS[lng]||LANGS['fr'];
+  var isPlace=['restaurants','bars','activites','epiceries','services'].indexOf(key)>=0;
+  var h='<div class="place-card" id="pageRow'+i+'">';
+  if(adm){
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+    h+='<div class="place-name" style="margin:0;">'+esc(r.t)+'</div>';
+    h+='<div style="display:flex;gap:5px;">';
+    h+='<span onclick="inlineEditRow(this)" data-key="'+key+'" data-i="'+i+'" style="font-size:9px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;padding:3px 7px;border:1px solid var(--border2);border-radius:2px;color:var(--bark);">✎</span>';
+    h+='<span onclick="inlineDelRow(this)" data-key="'+key+'" data-i="'+i+'" style="font-size:9px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;padding:3px 7px;border:1px solid rgba(176,80,80,.3);border-radius:2px;color:var(--red);">✕</span>';
+    h+='</div></div>';
+  } else {
+    h+='<div class="place-header"><div class="place-name">'+esc(r.t)+'</div>'+(r.rating?'<div class="place-badge">★ '+r.rating+'</div>':'')+'</div>';
+  }
+  if(r.cat||r.v)h+='<div class="place-meta">'+(r.cat?esc(r.cat)+' · ':'')+esc(r.v||'')+'</div>';
+  if(r.addr){
+    h+='<div class="map-card" style="margin:8px -1px 10px;border-radius:3px;overflow:hidden;">'+mapEmbed(r.addr)+'</div>';
+    h+='<div class="place-actions"><button class="btn-main" onclick="openMapsData(this)" data-addr="'+esc(r.addr)+'">Plans</button><button class="btn-sec" onclick="openGMapsData(this)" data-addr="'+esc(r.addr)+'">Google Maps</button></div>';
+  }
+  if(r.tel)h+='<a href="tel:'+esc(r.tel)+'" class="btn-call" style="margin-top:6px;display:inline-flex;">📞 Appeler</a>';
+  h+='</div>';
+  return h;
+}
+
 function buildPage(key){
   var L=LANGS[lng]||LANGS['fr'],rows=getRows(key);
   if(key==='avis'){return buildAvisPage();}
+  var isPlacePage=['restaurants','bars','activites','epiceries','services'].indexOf(key)>=0;
   // Injecter les contacts dans numeros
   if(key==='numeros'){
-    var baseRows=rows.slice();
     var allContacts=S.contacts&&S.contacts.length>0?S.contacts:[S.hostPhone?{name:S.hostName||'Votre hôte',phone:S.hostPhone||'',msg:S.hostMsg||''}:null].filter(Boolean);
     var contactRows=allContacts.filter(function(c){return c.phone;}).map(function(c){return {t:c.name||'Votre hôte',v:c.phone,tel:1,sub:c.msg||''};});
-    rows=contactRows.concat(baseRows.filter(function(r){return r.t!==(L.rows.numeros[0]||{}).t;}));
-  }
-  if(key==='services'){
-    var places=getPlaces(key),cats=L.svcCats||{},bycat={};
-    places.forEach(function(r){var c=r.cat||'autre';if(!bycat[c])bycat[c]=[];bycat[c].push(r);});
-    var h='<div class="page-body">';
-    Object.keys(bycat).forEach(function(cat){
-      h+='<div class="ic"><div class="svc-cat-hd">'+esc(cats[cat]||cat)+'</div>';
-      bycat[cat].forEach(function(r){
-        h+='<div style="padding:10px 0;border-bottom:1px solid var(--border);"><div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:var(--stone);margin-bottom:2px;">'+esc(r.t)+'</div>';
-        if(r.v)h+='<div style="font-size:11px;color:var(--dust);margin-bottom:6px;">'+esc(r.v)+'</div>';
-        if(r.addr)h+='<div class="map-card" style="margin:6px 0 8px;border-radius:3px;overflow:hidden;">'+mapEmbed(r.addr)+'</div>';
-        h+='<div style="display:flex;gap:7px;flex-wrap:wrap;">';
-        if(r.addr)h+='<button class="btn-main" onclick="openMaps(\''+r.addr.replace(/'/g,"\\'")+'\')">Plans</button>';
-        if(r.tel)h+='<a href="tel:'+esc(r.tel)+'" class="btn-call">📞 Appeler</a>';
-        h+='</div></div>';
-      });
-      h+='</div>';
-    });
-    return h+'</div>';
-  }
-  if(key==='restaurants'||key==='bars'||key==='activites'||key==='epiceries'){
-    var places=getPlaces(key),h='<div class="page-body">';
-    places.forEach(function(r){
-      h+='<div class="place-card">';
-      h+='<div class="place-header"><div class="place-name">'+esc(r.t)+'</div>'+(r.rating?'<div class="place-badge">★ '+r.rating+'</div>':'')+'</div>';
-      if(r.cat||r.v)h+='<div class="place-meta">'+(r.cat?esc(r.cat)+' · ':'')+esc(r.v)+'</div>';
-      if(r.addr){h+='<div class="map-card" style="margin:8px -1px 10px;border-radius:3px;overflow:hidden;">'+mapEmbed(r.addr)+'</div>';h+='<div class="place-actions"><button class="btn-main" onclick="openMaps(\''+r.addr.replace(/'/g,"\\'")+'\')">Plans</button><button class="btn-sec" onclick="openGMaps(\''+r.addr.replace(/'/g,"\\'")+'\')">Google Maps</button></div>';}
-      h+='</div>';
-    });
-    return h+'</div>';
+    rows=contactRows.concat(rows.filter(function(r){return r.t!==(L.rows.numeros[0]||{}).t;}));
   }
   var h='<div class="page-body">';
+  if(isPlacePage){
+    var places=getPlaces(key);
+    if(key==='services'){
+      var cats=L.svcCats||{},bycat={};
+      places.forEach(function(r,i){r._idx=i;var c=r.cat||'autre';if(!bycat[c])bycat[c]=[];bycat[c].push(r);});
+      Object.keys(bycat).forEach(function(cat){
+        h+='<div class="ic"><div class="svc-cat-hd">'+esc(cats[cat]||cat)+'</div>';
+        bycat[cat].forEach(function(r){h+=renderPlaceCard(r,r._idx,key);});
+        h+='</div>';
+      });
+    } else {
+      places.forEach(function(r,i){h+=renderPlaceCard(r,i,key);});
+    }
+    if(adm){h+='<div style="padding:8px 0 16px;"><button onclick="inlineAddRow(this)" data-key="'+key+'" style="width:100%;padding:10px;border:1px dashed var(--border2);background:none;border-radius:2px;font-size:9px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:var(--bark);font-family:inherit;">+ Ajouter</button></div>';}
+    return h+'</div>';
+  }
+  // Onglets simples (wifi, arrivee, poubelles, reglement, acces, inventaire, etc.)
   rows.filter(function(r){return !r.cl;}).forEach(function(r,i){
     h+='<div class="ic" id="pageRow'+i+'">';
     if(adm){
@@ -2253,9 +2265,10 @@ function buildPage(key){
     } else {
       h+='<div class="ic-lbl">'+esc(r.t)+'</div>';
     }
-    if(r.cp){h+='<div class="ic-val-mono">'+esc(r.v)+'</div><button class="btn-main" onclick="doCopy(\''+r.v.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">Copier le mot de passe</button>';}
-    else{h+='<div class="ic-val">'+richVal(r.v)+'</div>';
-      if(r.map&&r.addr){h+='<div style="margin-top:11px;display:flex;gap:7px;flex-wrap:wrap;"><button class="btn-main" onclick="openMaps(\''+r.addr.replace(/'/g,"\\'")+'\')">'+esc(r.ml)+'</button><button class="btn-sec" onclick="openGMaps(\''+r.addr.replace(/'/g,"\\'")+'\')">Google Maps</button></div><div class="map-card" style="margin-top:10px;">'+mapEmbed(r.addr)+'</div>';}
+    if(r.cp){h+='<div class="ic-val-mono">'+esc(r.v)+'</div><button class="btn-main" onclick="doCopyData(this)" data-val="'+esc(r.v)+'">Copier le mot de passe</button>';}
+    else{
+      h+='<div class="ic-val">'+richVal(r.v)+'</div>';
+      if(r.map&&r.addr){h+='<div style="margin-top:11px;display:flex;gap:7px;flex-wrap:wrap;"><button class="btn-main" onclick="openMapsData(this)" data-addr="'+esc(r.addr)+'">'+esc(r.ml||'Plans')+'</button><button class="btn-sec" onclick="openGMapsData(this)" data-addr="'+esc(r.addr)+'">Google Maps</button></div><div class="map-card" style="margin-top:10px;">'+mapEmbed(r.addr)+'</div>';}
       if(r.tel){h+='<a href="tel:'+esc(r.v)+'" class="btn-main" style="margin-top:10px;">'+(LANGS[lng]||LANGS['fr']).call+'</a>';}
     }
     h+='</div>';
@@ -2266,67 +2279,142 @@ function buildPage(key){
 }
 
 // ═══════════════════════════════════════════════
-// INLINE EDIT ROWS
+// INLINE EDIT ROWS — tous onglets
 // ═══════════════════════════════════════════════
 var _inlineEditKey=null;
-function inlineEditRow(el){var key=el.dataset.key;var i=parseInt(el.dataset.i);
+var PLACE_PAGES=['restaurants','bars','activites','epiceries','services'];
+
+function inlineEditRow(el){
+  var key=el.dataset.key;var i=parseInt(el.dataset.i);
   _inlineEditKey=key;
-  var rows=getRows(key);
-  var r=rows[i]||{t:'',v:'',addr:''};
-  var el=document.getElementById('pageRow'+i);
-  if(!el)return;
-  var hasAddr=!!(r.addr||r.map);
-  el.innerHTML=
-    '<div style="background:var(--cream);border-radius:4px;padding:12px;margin:-4px -4px 0;">' +
-    '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--bark);font-weight:600;margin-bottom:10px;">Modifier la ligne</div>' +
-    '<div style="margin-bottom:8px;"><label style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--dust);display:block;margin-bottom:4px;">Titre</label>' +
-    '<input id="ile_t'+i+'" value="'+esc(r.t)+'" style="width:100%;border:1px solid var(--border2);border-radius:2px;padding:8px 10px;font-size:13px;font-family:inherit;background:var(--white);"></div>' +
-    '<div style="margin-bottom:8px;"><label style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--dust);display:block;margin-bottom:4px;">Contenu</label>' +
-    '<textarea id="ile_v'+i+'" rows="3" style="width:100%;border:1px solid var(--border2);border-radius:2px;padding:8px 10px;font-size:13px;font-family:inherit;background:var(--white);resize:vertical;">'+esc(r.v)+'</textarea></div>' +
-    '<div style="margin-bottom:12px;"><label style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--dust);display:block;margin-bottom:4px;">Adresse Maps (optionnel)</label>' +
-    '<input id="ile_a'+i+'" value="'+esc(r.addr||'')+'" placeholder="Ex: Villa Mana Vallon Pont d&#39;Arc" style="width:100%;border:1px solid var(--border2);border-radius:2px;padding:8px 10px;font-size:13px;font-family:inherit;background:var(--white);"></div>' +
-    '<div style="display:flex;gap:8px;">' +
-    '<button onclick="inlineSaveRow(this)" data-key="'+key+'" data-i="'+i+'" style="flex:2;padding:9px;border:none;background:var(--stone);color:#fff;border-radius:2px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:600;">Enregistrer</button>' +
-    '<button onclick="openPage(this.dataset.key)" data-key="'+key+'" style="flex:1;padding:9px;border:1px solid var(--border2);background:none;border-radius:2px;font-size:9px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;color:var(--dust);font-family:inherit;">Annuler</button>' +
-    '</div></div>';
+  var isPlace=PLACE_PAGES.indexOf(key)>=0;
+  var rows=isPlace?getPlaces(key):getRows(key);
+  var r=rows[i]||{t:'',v:'',addr:'',cat:'',rating:'',tel:''};
+  var box=document.getElementById('pageRow'+i);
+  if(!box)return;
+  var lbl=function(txt){return '<label style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--dust);display:block;margin-bottom:4px;">'+txt+'</label>';};
+  var inp=function(id,val,ph){return '<input id="'+id+'" value="'+esc(val||'')+'" placeholder="'+esc(ph||'')+'" style="width:100%;border:1px solid var(--border2);border-radius:2px;padding:8px 10px;font-size:13px;font-family:inherit;background:var(--white);">';};
+  var h='<div style="background:var(--cream);border-radius:4px;padding:12px;">';
+  h+='<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--bark);font-weight:600;margin-bottom:10px;">✎ Modifier</div>';
+  h+='<div style="margin-bottom:8px;">'+lbl('Titre')+inp('ile_t'+i,r.t)+'</div>';
+  h+='<div style="margin-bottom:8px;">'+lbl('Contenu / Description')+'<textarea id="ile_v'+i+'" rows="2" style="width:100%;border:1px solid var(--border2);border-radius:2px;padding:8px 10px;font-size:13px;font-family:inherit;background:var(--white);resize:vertical;">'+esc(r.v||'')+'</textarea></div>';
+  if(isPlace){
+    h+='<div style="margin-bottom:8px;">'+lbl('Catégorie')+inp('ile_cat'+i,r.cat)+'</div>';
+    h+='<div style="margin-bottom:8px;">'+lbl('Note (ex: 4.7)')+inp('ile_rat'+i,r.rating)+'</div>';
+    h+='<div style="margin-bottom:8px;">'+lbl('Téléphone')+inp('ile_tel'+i,r.tel)+'</div>';
+  }
+  h+='<div style="margin-bottom:12px;">'+lbl('Adresse GPS / Maps')+inp('ile_a'+i,r.addr,'Ex: Gorges de l\'Ard&egrave;che 07150')+'<div id="ile_sug'+i+'" style="font-size:11px;color:var(--bark);margin-top:4px;cursor:pointer;"></div></div>';
+  h+='<div style="display:flex;gap:8px;">';
+  h+='<button onclick="inlineSaveRow(this)" data-key="'+key+'" data-i="'+i+'" style="flex:2;padding:9px;border:none;background:var(--stone);color:#fff;border-radius:2px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:600;">Enregistrer</button>';
+  h+='<button onclick="inlineCancelEdit(this)" data-key="'+key+'" style="flex:1;padding:9px;border:1px solid var(--border2);background:none;border-radius:2px;font-size:9px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;color:var(--dust);font-family:inherit;">Annuler</button>';
+  h+='</div></div>';
+  box.innerHTML=h;
+  // Autocomplétion adresse en temps réel
+  var addrInp=document.getElementById('ile_a'+i);
+  if(addrInp) addrInp.addEventListener('input',function(){inlineAddrSearch(this.value,i);});
 }
-async function inlineSaveRow(el){var key=el.dataset.key;var i=parseInt(el.dataset.i);
-  var tEl=document.getElementById('ile_t'+i);
-  var vEl=document.getElementById('ile_v'+i);
-  var aEl=document.getElementById('ile_a'+i);
-  if(!tEl||!vEl)return;
-  if(!S.ov[lng])S.ov[lng]={};
-  if(!S.ov[lng][key])S.ov[lng][key]=[];
-  var base=(LANGS[lng]||LANGS['fr']).rows[key]||[];
-  // Remplir jusqu'à l'index si nécessaire
-  while(S.ov[lng][key].length<=i)S.ov[lng][key].push(null);
-  var addr=aEl?aEl.value.trim():'';
-  S.ov[lng][key][i]={t:tEl.value,v:vEl.value,addr:addr,map:!!addr,ml:'Voir sur la carte'};
-  // Aussi propager l'addr dans la ligne de base si pas déjà là
-  await save();
-  showToast('Enregistré ✓');
+
+var _inlineAddrTimer={};
+function inlineCancelEdit(el){openPage(el.dataset.key);}
+function inlineAddrSearch(q,i){
+  var sug=document.getElementById('ile_sug'+i);
+  if(!sug)return;
+  clearTimeout(_inlineAddrTimer[i]);
+  if(q.length<3){sug.innerHTML='';return;}
+  window._rawAddrMap=window._rawAddrMap||{};
+  window._rawAddrMap['ile_'+i]=q;
+  sug.innerHTML='<span onclick="pickInlineAddr('+i+',-1)">✓ Utiliser : '+esc(q)+'</span>';
+  _inlineAddrTimer[i]=setTimeout(async function(){
+    try{
+      var ctrl=new AbortController();
+      setTimeout(function(){ctrl.abort();},3000);
+      var r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=4',{headers:{'Accept-Language':'fr'},signal:ctrl.signal});
+      var d=await r.json();
+      if(d.length){
+        window._inlineAddrOptions=window._inlineAddrOptions||{};
+        window._inlineAddrOptions[i]=d.map(function(p){return p.display_name;});
+        sug.innerHTML='<span onclick="pickInlineAddr('+i+',-1)" style="display:block;padding:3px 0;border-bottom:1px solid var(--border);">✓ Utiliser : '+esc(q)+'</span>'+
+          d.map(function(p,pi){return '<span onclick="pickInlineAddr('+i+','+pi+')" style="display:block;padding:3px 0;border-bottom:1px solid var(--border);font-size:11px;color:var(--dust);">'+esc(p.display_name)+'</span>';}).join('');
+      }
+    }catch(e){}
+  },500);
+}
+function pickInlineAddr(i,pi){
+  var inp=document.getElementById('ile_a'+i);
+  if(!inp)return;
+  if(pi>=0&&window._inlineAddrOptions&&window._inlineAddrOptions[i]&&window._inlineAddrOptions[i][pi]){
+    inp.value=window._inlineAddrOptions[i][pi];
+  } else {
+    inp.value=(window._rawAddrMap&&window._rawAddrMap['ile_'+i])||inp.value;
+  }
+  var sug=document.getElementById('ile_sug'+i);
+  if(sug)sug.innerHTML='<span style="color:#2d8a4e;">✓ '+esc(inp.value)+'</span>';
+}
+
+async function inlineSaveRow(el){
+  var key=el.dataset.key;var i=parseInt(el.dataset.i);
+  var isPlace=PLACE_PAGES.indexOf(key)>=0;
+  var t=(document.getElementById('ile_t'+i)||{value:''}).value;
+  var v=(document.getElementById('ile_v'+i)||{value:''}).value;
+  var addr=(document.getElementById('ile_a'+i)||{value:''}).value.trim();
+  if(isPlace){
+    var cat=(document.getElementById('ile_cat'+i)||{value:''}).value;
+    var rat=(document.getElementById('ile_rat'+i)||{value:''}).value;
+    var tel=(document.getElementById('ile_tel'+i)||{value:''}).value;
+    if(!S.places)S.places={};
+    if(!S.places[key])S.places[key]=getPlaces(key).slice();
+    while(S.places[key].length<=i)S.places[key].push({t:'',v:'',addr:'',cat:'',rating:'',tel:''});
+    S.places[key][i]={t:t,v:v,addr:addr,cat:cat,rating:rat,tel:tel,map:!!addr,ml:'Plans'};
+  } else {
+    if(!S.ov[lng])S.ov[lng]={};
+    if(!S.ov[lng][key])S.ov[lng][key]=[];
+    while(S.ov[lng][key].length<=i)S.ov[lng][key].push(null);
+    S.ov[lng][key][i]={t:t,v:v,addr:addr,map:!!addr,ml:'Voir sur la carte'};
+  }
+  showToast('Enregistrement…');
+  save().then(function(){showToast('Enregistré ✓');});
   openPage(key);
 }
-async function inlineDelRow(el){var key=el.dataset.key;var i=parseInt(el.dataset.i);
-  if(!S.ov[lng])S.ov[lng]={};
-  if(!S.ov[lng][key])S.ov[lng][key]=[];
-  while(S.ov[lng][key].length<=i)S.ov[lng][key].push(null);
-  S.ov[lng][key][i]={_deleted:true,t:'',v:''};
-  await save();
-  showToast('Ligne supprimée');
+
+async function inlineDelRow(el){
+  var key=el.dataset.key;var i=parseInt(el.dataset.i);
+  var isPlace=PLACE_PAGES.indexOf(key)>=0;
+  if(isPlace){
+    if(!S.places)S.places={};
+    var arr=getPlaces(key).slice();
+    arr.splice(i,1);
+    S.places[key]=arr;
+  } else {
+    if(!S.ov[lng])S.ov[lng]={};
+    if(!S.ov[lng][key])S.ov[lng][key]=[];
+    while(S.ov[lng][key].length<=i)S.ov[lng][key].push(null);
+    S.ov[lng][key][i]={_deleted:true,t:'',v:''};
+  }
+  save().then(function(){showToast('Supprimé ✓');});
   openPage(key);
 }
-async function inlineAddRow(el){var key=el.dataset.key;
-  if(!S.ov[lng])S.ov[lng]={};
-  if(!S.ov[lng][key])S.ov[lng][key]=[];
-  S.ov[lng][key].push({t:'Nouvelle ligne',v:'À compléter',addr:'',map:false,ml:'Voir'});
-  await save();
+
+async function inlineAddRow(el){
+  var key=el.dataset.key;
+  var isPlace=PLACE_PAGES.indexOf(key)>=0;
+  if(isPlace){
+    if(!S.places)S.places={};
+    if(!S.places[key])S.places[key]=getPlaces(key).slice();
+    S.places[key].push({t:'Nouveau',v:'',addr:'',cat:'',rating:'',tel:''});
+  } else {
+    if(!S.ov[lng])S.ov[lng]={};
+    if(!S.ov[lng][key])S.ov[lng][key]=[];
+    S.ov[lng][key].push({t:'Nouvelle ligne',v:'',addr:'',map:false,ml:'Voir'});
+  }
+  save().then(function(){showToast('Ajouté ✓');});
   openPage(key);
-  // Scroll en bas
-  setTimeout(function(){var pc=document.getElementById('pageContent');if(pc)pc.scrollTop=pc.scrollHeight;},100);
+  setTimeout(function(){var pc=document.getElementById('pageContent');if(pc)pc.scrollTop=pc.scrollHeight;},150);
 }
 // ═══════════════════════════════════════════════
 
+function openMapsData(el){openMaps(el.dataset.addr);}
+function openGMapsData(el){openGMaps(el.dataset.addr);}
+function doCopyData(el){doCopy(el.dataset.val);}
 function doCopy(txt){var L=LANGS[lng]||LANGS['fr'];function fb(){try{var e=document.createElement('textarea');e.value=txt;e.style.cssText='position:fixed;opacity:0';document.body.appendChild(e);e.focus();e.select();document.execCommand('copy');document.body.removeChild(e);}catch(x){}}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){showToast(L.cp);},function(){fb();showToast(L.cp);});}else{fb();showToast(L.cp);}}
 function showToast(m){var el=document.getElementById('toast');document.getElementById('t-txt').textContent=m;el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(function(){el.classList.remove('on');},2000);}
 function togChk(el){el.classList.toggle('done');el.querySelector('.chk').classList.toggle('ok');}
