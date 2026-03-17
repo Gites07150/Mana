@@ -688,18 +688,24 @@ async function supaFetch(path,method,body){
 
 async function cloudLoad(){
   var pid=getPropId();
-  // Essai avec colonnes bg/avatar séparées
-  var data=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data,bg,avatar');
+  // FIX: Ajouter updated_at pour comparer avec localStorage
+  var data=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data,bg,avatar,updated_at');
   if(data&&data.length>0){
     cloudReady=true;
     var obj=data[0].data||{};
     if(data[0].bg)obj.bg=data[0].bg;
     if(data[0].avatar)obj.avatar=data[0].avatar;
+    // Stocker le timestamp cloud pour comparaison
+    if(data[0].updated_at)localStorage.setItem('ths_cloud_ts_'+pid, data[0].updated_at);
     return obj;
   }
-  // Fallback : colonnes bg/avatar absentes, on essaie avec data seulement
-  var data2=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data');
-  if(data2&&data2.length>0){cloudReady=true;return data2[0].data;}
+  // Fallback : colonnes bg/avatar absentes
+  var data2=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data,updated_at');
+  if(data2&&data2.length>0){
+    cloudReady=true;
+    if(data2[0].updated_at)localStorage.setItem('ths_cloud_ts_'+pid, data2[0].updated_at);
+    return data2[0].data;
+  }
   cloudReady=false;return null;
 }
 
@@ -719,6 +725,10 @@ async function cloudSaveUpsert(propData){
   var pid=getPropId();
   var url=getSupaUrl();var key=getSupaKey();
   if(!url||!key)return false;
+  // FIX: Réécrire les clés hardcodées à chaque save pour éviter leur perte
+  if(HARDCODED_SUPA_URL)localStorage.setItem(SUPA_URL_KEY,HARDCODED_SUPA_URL);
+  if(HARDCODED_SUPA_KEY)localStorage.setItem(SUPA_KEY_KEY,HARDCODED_SUPA_KEY);
+  if(HARDCODED_PROP_ID)localStorage.setItem(PROP_ID_KEY,HARDCODED_PROP_ID);
   try{
     // bg et avatar dans colonnes séparées pour éviter la limite 1MB
     var mainData=JSON.parse(JSON.stringify(propData));
@@ -1931,19 +1941,43 @@ function saveQRToGallery(){
 // LOAD / SAVE
 // ═══════════════════════════════════════════════
 async function load(){
-  // Try Supabase first, with a 5s timeout to avoid blocking forever
+  // FIX: Réécrire les clés hardcodées au chargement pour éviter leur perte (iOS/Safari vide le cache)
+  if(HARDCODED_SUPA_URL)localStorage.setItem(SUPA_URL_KEY,HARDCODED_SUPA_URL);
+  if(HARDCODED_SUPA_KEY)localStorage.setItem(SUPA_KEY_KEY,HARDCODED_SUPA_KEY);
+  if(HARDCODED_PROP_ID)localStorage.setItem(PROP_ID_KEY,HARDCODED_PROP_ID);
+
+  var pid=getPropId();
   var cloudData=null;
   try{
     var timeoutPromise=new Promise(function(resolve){setTimeout(function(){resolve(null);},5000);});
     cloudData=await Promise.race([cloudLoad(),timeoutPromise]);
   }catch(e){cloudData=null;}
-  if(cloudData){
+
+  var localRaw=localStorage.getItem('ths_data_'+pid);
+  var localData=localRaw?JSON.parse(localRaw):null;
+
+  if(cloudData&&localData){
+    // FIX: Comparer les timestamps — prendre le plus récent
+    var cloudTs=localStorage.getItem('ths_cloud_ts_'+pid)||'';
+    var localTs=localData._savedAt||'';
+    if(cloudTs&&localTs&&localTs>cloudTs){
+      // Local plus récent → on garde local ET on repousse vers le cloud
+      S=localData;
+      cloudSaveUpsert(S); // resync silencieux
+    } else {
+      // Cloud plus récent (ou pas de timestamp) → on prend le cloud
+      S=cloudData;
+      localStorage.setItem('ths_data_'+pid,JSON.stringify(S));
+    }
+  } else if(cloudData){
     S=cloudData;
+    localStorage.setItem('ths_data_'+pid,JSON.stringify(S));
+  } else if(localData){
+    S=localData;
   } else {
-    // Fallback localStorage
-    var local=localStorage.getItem('ths_data_'+getPropId());
-    S=local?JSON.parse(local):JSON.parse(JSON.stringify(DEF));
+    S=JSON.parse(JSON.stringify(DEF));
   }
+
   // Ensure all fields exist
   if(!S.ov)S.ov={};
   if(!S.mem)S.mem=JSON.parse(JSON.stringify(DEF_MEM));
@@ -2012,6 +2046,8 @@ async function compressAllImgs(obj){
 
 async function save(){
   try{
+    // FIX: Tamponner l'heure de sauvegarde locale pour comparaison avec le cloud
+    S._savedAt=new Date().toISOString();
     var compressed=await compressAllImgs(S);
     // NE PAS écraser S.bg — garder l'original pour éviter dégradation progressive
     // Seulement mettre à jour avatar, gallery, manuel avec versions compressées
@@ -2039,10 +2075,30 @@ async function save(){
 function getKnownProps(){var r=localStorage.getItem('ths_known_props');return r?JSON.parse(r):[];}
 function addKnownProp(id,name){var arr=getKnownProps();var ex=arr.find(function(x){return x.id===id;});if(ex){ex.name=name;}else{arr.push({id:id,name:name});}localStorage.setItem('ths_known_props',JSON.stringify(arr));}
 
-function refreshPropSelect(){
+// FIX: Sync liste logements depuis Supabase pour que tous les appareils voient les mêmes logements
+async function syncKnownPropsFromCloud(){
+  var url=getSupaUrl();var key=getSupaKey();
+  if(!url||!key)return;
+  try{
+    var r=await fetch(url+'/rest/v1/properties?select=id,data',{headers:{'apikey':key,'Authorization':'Bearer '+key}});
+    if(!r.ok)return;
+    var rows=await r.json();
+    if(!Array.isArray(rows)||!rows.length)return;
+    var arr=getKnownProps();
+    rows.forEach(function(row){
+      var name=(row.data&&row.data.name)?row.data.name:row.id;
+      var ex=arr.find(function(x){return x.id===row.id;});
+      if(ex){ex.name=name;}else{arr.push({id:row.id,name:name});}
+    });
+    localStorage.setItem('ths_known_props',JSON.stringify(arr));
+  }catch(e){console.log('syncKnownProps error:',e);}
+}
+
+async function refreshPropSelect(){
   var sel=document.getElementById('propSelect');if(!sel)return;
   var cid=getPropId();
   addKnownProp(cid,S.name||cid);
+  await syncKnownPropsFromCloud();
   var arr=getKnownProps();
   sel.innerHTML=arr.map(function(p){return '<option value="'+p.id+'"'+(p.id===cid?' selected':'')+'>'+esc(p.name)+'</option>';}).join('');
 }
@@ -2969,7 +3025,12 @@ function openCGV(){document.getElementById('cgvPanel').style.display='block';doc
 // INIT
 // ═══════════════════════════════════════════════
 async function init(){
-  // Safety: always hide the loading overlay after 6s max
+  // FIX: Toujours réécrire les clés hardcodées au démarrage
+  // Évite la déconnexion Supabase quand iOS/Safari vide le localStorage
+  if(HARDCODED_SUPA_URL)localStorage.setItem(SUPA_URL_KEY,HARDCODED_SUPA_URL);
+  if(HARDCODED_SUPA_KEY)localStorage.setItem(SUPA_KEY_KEY,HARDCODED_SUPA_KEY);
+  if(HARDCODED_PROP_ID)localStorage.setItem(PROP_ID_KEY,HARDCODED_PROP_ID);
+
   var safetyTimer=setTimeout(function(){
     var ov=document.getElementById('loadOv');if(ov)ov.classList.add('gone');
   },6000);
