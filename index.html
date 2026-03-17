@@ -688,24 +688,18 @@ async function supaFetch(path,method,body){
 
 async function cloudLoad(){
   var pid=getPropId();
-  // FIX: Ajouter updated_at pour comparer avec localStorage
-  var data=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data,bg,avatar,updated_at');
+  // Essai avec colonnes bg/avatar séparées
+  var data=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data,bg,avatar');
   if(data&&data.length>0){
     cloudReady=true;
     var obj=data[0].data||{};
     if(data[0].bg)obj.bg=data[0].bg;
     if(data[0].avatar)obj.avatar=data[0].avatar;
-    // Stocker le timestamp cloud pour comparaison
-    if(data[0].updated_at)localStorage.setItem('ths_cloud_ts_'+pid, data[0].updated_at);
     return obj;
   }
-  // Fallback : colonnes bg/avatar absentes
-  var data2=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data,updated_at');
-  if(data2&&data2.length>0){
-    cloudReady=true;
-    if(data2[0].updated_at)localStorage.setItem('ths_cloud_ts_'+pid, data2[0].updated_at);
-    return data2[0].data;
-  }
+  // Fallback : colonnes bg/avatar absentes, on essaie avec data seulement
+  var data2=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data');
+  if(data2&&data2.length>0){cloudReady=true;return data2[0].data;}
   cloudReady=false;return null;
 }
 
@@ -725,10 +719,6 @@ async function cloudSaveUpsert(propData){
   var pid=getPropId();
   var url=getSupaUrl();var key=getSupaKey();
   if(!url||!key)return false;
-  // FIX: Réécrire les clés hardcodées à chaque save pour éviter leur perte
-  if(HARDCODED_SUPA_URL)localStorage.setItem(SUPA_URL_KEY,HARDCODED_SUPA_URL);
-  if(HARDCODED_SUPA_KEY)localStorage.setItem(SUPA_KEY_KEY,HARDCODED_SUPA_KEY);
-  if(HARDCODED_PROP_ID)localStorage.setItem(PROP_ID_KEY,HARDCODED_PROP_ID);
   try{
     // bg et avatar dans colonnes séparées pour éviter la limite 1MB
     var mainData=JSON.parse(JSON.stringify(propData));
@@ -792,9 +782,9 @@ function doUnlockSupabase(){
   }
 }
 async function testSupabase(){
-  var url=document.getElementById('apSupaUrl').value.trim();
-  var key=document.getElementById('apSupaKey').value.trim();
-  var pid=document.getElementById('apPropId').value.trim()||HARDCODED_PROP_ID;
+  var url=(document.getElementById('apSupaUrl').value.trim())||HARDCODED_SUPA_URL;
+  var key=(document.getElementById('apSupaKey').value.trim())||HARDCODED_SUPA_KEY;
+  var pid=(document.getElementById('apPropId').value.trim())||HARDCODED_PROP_ID;
   var res=document.getElementById('supaTestResult');
   if(!url||!key){res.style.display='block';res.style.background='rgba(176,80,80,0.1)';res.style.color='var(--red)';res.textContent='⚠️ Entrez l\'URL et la clé Supabase.';return;}
   res.style.display='block';res.style.background='rgba(155,126,96,0.1)';res.style.color='var(--bark)';res.textContent='Test en cours…';
@@ -821,7 +811,9 @@ var cloudReady=false;
 function updateCloudStatusUI(){
   var dot=document.getElementById('csDot');var txt=document.getElementById('csTxt');var sub=document.getElementById('csSub');
   if(!dot)return;
-  if(cloudReady){
+  // FIX: Si clés hardcodées présentes, considérer comme connecté par défaut
+  var hasKeys=HARDCODED_SUPA_URL&&HARDCODED_SUPA_KEY;
+  if(cloudReady||(hasKeys&&getSupaUrl())){
     dot.className='cs-dot ok';txt.textContent='✓ Connecté à Supabase';sub.textContent='Prop ID : '+getPropId();
   } else if(getSupaUrl()){
     dot.className='cs-dot err';txt.textContent='⚠️ Erreur de connexion';sub.textContent='Vérifiez vos clés';
@@ -1941,43 +1933,19 @@ function saveQRToGallery(){
 // LOAD / SAVE
 // ═══════════════════════════════════════════════
 async function load(){
-  // FIX: Réécrire les clés hardcodées au chargement pour éviter leur perte (iOS/Safari vide le cache)
-  if(HARDCODED_SUPA_URL)localStorage.setItem(SUPA_URL_KEY,HARDCODED_SUPA_URL);
-  if(HARDCODED_SUPA_KEY)localStorage.setItem(SUPA_KEY_KEY,HARDCODED_SUPA_KEY);
-  if(HARDCODED_PROP_ID)localStorage.setItem(PROP_ID_KEY,HARDCODED_PROP_ID);
-
-  var pid=getPropId();
+  // Try Supabase first, with a 5s timeout to avoid blocking forever
   var cloudData=null;
   try{
     var timeoutPromise=new Promise(function(resolve){setTimeout(function(){resolve(null);},5000);});
     cloudData=await Promise.race([cloudLoad(),timeoutPromise]);
   }catch(e){cloudData=null;}
-
-  var localRaw=localStorage.getItem('ths_data_'+pid);
-  var localData=localRaw?JSON.parse(localRaw):null;
-
-  if(cloudData&&localData){
-    // FIX: Comparer les timestamps — prendre le plus récent
-    var cloudTs=localStorage.getItem('ths_cloud_ts_'+pid)||'';
-    var localTs=localData._savedAt||'';
-    if(cloudTs&&localTs&&localTs>cloudTs){
-      // Local plus récent → on garde local ET on repousse vers le cloud
-      S=localData;
-      cloudSaveUpsert(S); // resync silencieux
-    } else {
-      // Cloud plus récent (ou pas de timestamp) → on prend le cloud
-      S=cloudData;
-      localStorage.setItem('ths_data_'+pid,JSON.stringify(S));
-    }
-  } else if(cloudData){
+  if(cloudData){
     S=cloudData;
-    localStorage.setItem('ths_data_'+pid,JSON.stringify(S));
-  } else if(localData){
-    S=localData;
   } else {
-    S=JSON.parse(JSON.stringify(DEF));
+    // Fallback localStorage
+    var local=localStorage.getItem('ths_data_'+getPropId());
+    S=local?JSON.parse(local):JSON.parse(JSON.stringify(DEF));
   }
-
   // Ensure all fields exist
   if(!S.ov)S.ov={};
   if(!S.mem)S.mem=JSON.parse(JSON.stringify(DEF_MEM));
@@ -2046,8 +2014,6 @@ async function compressAllImgs(obj){
 
 async function save(){
   try{
-    // FIX: Tamponner l'heure de sauvegarde locale pour comparaison avec le cloud
-    S._savedAt=new Date().toISOString();
     var compressed=await compressAllImgs(S);
     // NE PAS écraser S.bg — garder l'original pour éviter dégradation progressive
     // Seulement mettre à jour avatar, gallery, manuel avec versions compressées
@@ -2075,30 +2041,10 @@ async function save(){
 function getKnownProps(){var r=localStorage.getItem('ths_known_props');return r?JSON.parse(r):[];}
 function addKnownProp(id,name){var arr=getKnownProps();var ex=arr.find(function(x){return x.id===id;});if(ex){ex.name=name;}else{arr.push({id:id,name:name});}localStorage.setItem('ths_known_props',JSON.stringify(arr));}
 
-// FIX: Sync liste logements depuis Supabase pour que tous les appareils voient les mêmes logements
-async function syncKnownPropsFromCloud(){
-  var url=getSupaUrl();var key=getSupaKey();
-  if(!url||!key)return;
-  try{
-    var r=await fetch(url+'/rest/v1/properties?select=id,data',{headers:{'apikey':key,'Authorization':'Bearer '+key}});
-    if(!r.ok)return;
-    var rows=await r.json();
-    if(!Array.isArray(rows)||!rows.length)return;
-    var arr=getKnownProps();
-    rows.forEach(function(row){
-      var name=(row.data&&row.data.name)?row.data.name:row.id;
-      var ex=arr.find(function(x){return x.id===row.id;});
-      if(ex){ex.name=name;}else{arr.push({id:row.id,name:name});}
-    });
-    localStorage.setItem('ths_known_props',JSON.stringify(arr));
-  }catch(e){console.log('syncKnownProps error:',e);}
-}
-
-async function refreshPropSelect(){
+function refreshPropSelect(){
   var sel=document.getElementById('propSelect');if(!sel)return;
   var cid=getPropId();
   addKnownProp(cid,S.name||cid);
-  await syncKnownPropsFromCloud();
   var arr=getKnownProps();
   sel.innerHTML=arr.map(function(p){return '<option value="'+p.id+'"'+(p.id===cid?' selected':'')+'>'+esc(p.name)+'</option>';}).join('');
 }
@@ -3024,13 +2970,25 @@ function openCGV(){document.getElementById('cgvPanel').style.display='block';doc
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
+async function keepSupabaseAwake(){
+  var url=getSupaUrl();var key=getSupaKey();
+  if(!url||!key)return;
+  var lastPing=localStorage.getItem('ths_last_ping')||'0';
+  var now=Date.now();
+  if(now-parseInt(lastPing)<48*60*60*1000)return;
+  try{
+    await fetch(url+'/rest/v1/properties?limit=1',{headers:{'apikey':key,'Authorization':'Bearer '+key}});
+    localStorage.setItem('ths_last_ping',String(now));
+  }catch(e){}
+}
+
 async function init(){
-  // FIX: Toujours réécrire les clés hardcodées au démarrage
-  // Évite la déconnexion Supabase quand iOS/Safari vide le localStorage
+  // Réécrire les clés hardcodées au démarrage — évite la déco quand iOS vide le cache
   if(HARDCODED_SUPA_URL)localStorage.setItem(SUPA_URL_KEY,HARDCODED_SUPA_URL);
   if(HARDCODED_SUPA_KEY)localStorage.setItem(SUPA_KEY_KEY,HARDCODED_SUPA_KEY);
   if(HARDCODED_PROP_ID)localStorage.setItem(PROP_ID_KEY,HARDCODED_PROP_ID);
-
+  // Ping Supabase pour éviter la mise en pause automatique (toutes les 48h)
+  keepSupabaseAwake();
   var safetyTimer=setTimeout(function(){
     var ov=document.getElementById('loadOv');if(ov)ov.classList.add('gone');
   },6000);
