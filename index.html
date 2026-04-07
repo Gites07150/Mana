@@ -667,12 +667,11 @@ var HARDCODED_SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmF
 var HARDCODED_PROP_ID='Mana';
 var ANTHROPIC_KEY_STORE='ths_anthropic_key';
 var GROQ_KEY_STORE='ths_groq_key';
-function getGroqKey(){return (typeof S!=='undefined'&&S.aiKey?S.aiKey:'')||localStorage.getItem(GROQ_KEY_STORE)||'';}
-
-function getSupaUrl(){return localStorage.getItem(SUPA_URL_KEY)||HARDCODED_SUPA_URL;}
+var HARDCODED_GROQ_KEY='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';
+function getGroqKey(){return HARDCODED_GROQ_KEY||(typeof S!=='undefined'&&S.aiKey?S.aiKey:'')||localStorage.getItem(GROQ_KEY_STORE)||'';}
+function getAnthropicKey(){return HARDCODED_GROQ_KEY||(typeof S!=='undefined'&&S.aiKey?S.aiKey:'')||localStorage.getItem(ANTHROPIC_KEY_STORE)||'';}
 function getSupaKey(){return localStorage.getItem(SUPA_KEY_KEY)||HARDCODED_SUPA_KEY;}
 function getPropId(){return localStorage.getItem(PROP_ID_KEY)||HARDCODED_PROP_ID;}
-function getAnthropicKey(){return (typeof S!=='undefined'&&S.aiKey?S.aiKey:'')||localStorage.getItem(ANTHROPIC_KEY_STORE)||'';}
 
 async function supaFetch(path,method,body){
   var url=getSupaUrl();var key=getSupaKey();
