@@ -688,20 +688,13 @@ async function supaFetch(path,method,body){
 
 async function cloudLoad(){
   var pid=getPropId();
-  var data=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data,bg,avatar,updated_at');
+  // Utilise uniquement la colonne data (bg/avatar stockés dedans)
+  var data=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data,updated_at');
   if(data&&data.length>0){
     cloudReady=true;
     var obj=data[0].data||{};
-    if(data[0].bg)obj.bg=data[0].bg;
-    if(data[0].avatar)obj.avatar=data[0].avatar;
     if(data[0].updated_at)localStorage.setItem('ths_cloud_ts_'+pid,data[0].updated_at);
     return obj;
-  }
-  var data2=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data,updated_at');
-  if(data2&&data2.length>0){
-    cloudReady=true;
-    if(data2[0].updated_at)localStorage.setItem('ths_cloud_ts_'+pid,data2[0].updated_at);
-    return data2[0].data;
   }
   cloudReady=false;return null;
 }
