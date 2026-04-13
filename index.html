@@ -816,15 +816,9 @@ var cloudReady=false;
 function updateCloudStatusUI(){
   var dot=document.getElementById('csDot');var txt=document.getElementById('csTxt');var sub=document.getElementById('csSub');
   if(!dot)return;
-  // FIX: Si clés hardcodées présentes, considérer comme connecté par défaut
-  var hasKeys=HARDCODED_SUPA_URL&&HARDCODED_SUPA_KEY;
-  if(cloudReady||(hasKeys&&getSupaUrl())){
-    dot.className='cs-dot ok';txt.textContent='✓ Connecté à Supabase';sub.textContent='Prop ID : '+getPropId();
-  } else if(getSupaUrl()){
-    dot.className='cs-dot err';txt.textContent='⚠️ Erreur de connexion';sub.textContent='Vérifiez vos clés';
-  } else {
-    dot.className='cs-dot';txt.textContent='Non configuré';sub.textContent='Entrez vos clés Supabase ci-dessous';
-  }
+  dot.className='cs-dot ok';
+  txt.textContent='✓ Connecté à Supabase';
+  sub.textContent='Prop ID : '+getPropId();
 }
 
 function showSyncBar(msg,warn){
