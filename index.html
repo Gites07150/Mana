@@ -687,18 +687,21 @@ async function supaFetch(path,method,body){
 
 async function cloudLoad(){
   var pid=getPropId();
-  // Essai avec colonnes bg/avatar séparées
-  var data=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data,bg,avatar');
+  var data=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data,bg,avatar,updated_at');
   if(data&&data.length>0){
     cloudReady=true;
     var obj=data[0].data||{};
     if(data[0].bg)obj.bg=data[0].bg;
     if(data[0].avatar)obj.avatar=data[0].avatar;
+    if(data[0].updated_at)localStorage.setItem('ths_cloud_ts_'+pid,data[0].updated_at);
     return obj;
   }
-  // Fallback : colonnes bg/avatar absentes, on essaie avec data seulement
-  var data2=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data');
-  if(data2&&data2.length>0){cloudReady=true;return data2[0].data;}
+  var data2=await supaFetch('properties?id=eq.'+encodeURIComponent(pid)+'&select=data,updated_at');
+  if(data2&&data2.length>0){
+    cloudReady=true;
+    if(data2[0].updated_at)localStorage.setItem('ths_cloud_ts_'+pid,data2[0].updated_at);
+    return data2[0].data;
+  }
   cloudReady=false;return null;
 }
 
@@ -718,6 +721,9 @@ async function cloudSaveUpsert(propData){
   var pid=getPropId();
   var url=getSupaUrl();var key=getSupaKey();
   if(!url||!key)return false;
+  if(HARDCODED_SUPA_URL)localStorage.setItem(SUPA_URL_KEY,HARDCODED_SUPA_URL);
+  if(HARDCODED_SUPA_KEY)localStorage.setItem(SUPA_KEY_KEY,HARDCODED_SUPA_KEY);
+  if(HARDCODED_PROP_ID)localStorage.setItem(PROP_ID_KEY,HARDCODED_PROP_ID);
   try{
     // bg et avatar dans colonnes séparées pour éviter la limite 1MB
     var mainData=JSON.parse(JSON.stringify(propData));
@@ -1932,18 +1938,32 @@ function saveQRToGallery(){
 // LOAD / SAVE
 // ═══════════════════════════════════════════════
 async function load(){
-  // Try Supabase first, with a 5s timeout to avoid blocking forever
+  // Réécrire les clés hardcodées — évite la déco quand iOS vide le cache
+  if(HARDCODED_SUPA_URL)localStorage.setItem(SUPA_URL_KEY,HARDCODED_SUPA_URL);
+  if(HARDCODED_SUPA_KEY)localStorage.setItem(SUPA_KEY_KEY,HARDCODED_SUPA_KEY);
+  if(HARDCODED_PROP_ID)localStorage.setItem(PROP_ID_KEY,HARDCODED_PROP_ID);
+  var pid=getPropId();
   var cloudData=null;
   try{
     var timeoutPromise=new Promise(function(resolve){setTimeout(function(){resolve(null);},5000);});
     cloudData=await Promise.race([cloudLoad(),timeoutPromise]);
   }catch(e){cloudData=null;}
-  if(cloudData){
-    S=cloudData;
+  var localRaw=localStorage.getItem('ths_data_'+pid);
+  var localData=localRaw?JSON.parse(localRaw):null;
+  if(cloudData&&localData){
+    var cloudTs=localStorage.getItem('ths_cloud_ts_'+pid)||'';
+    var localTs=localData._savedAt||'';
+    if(cloudTs&&localTs&&localTs>cloudTs){
+      S=localData;cloudSaveUpsert(S);
+    } else {
+      S=cloudData;localStorage.setItem('ths_data_'+pid,JSON.stringify(S));
+    }
+  } else if(cloudData){
+    S=cloudData;localStorage.setItem('ths_data_'+pid,JSON.stringify(S));
+  } else if(localData){
+    S=localData;
   } else {
-    // Fallback localStorage
-    var local=localStorage.getItem('ths_data_'+getPropId());
-    S=local?JSON.parse(local):JSON.parse(JSON.stringify(DEF));
+    S=JSON.parse(JSON.stringify(DEF));
   }
   // Ensure all fields exist
   if(!S.ov)S.ov={};
@@ -2013,6 +2033,7 @@ async function compressAllImgs(obj){
 
 async function save(){
   try{
+    S._savedAt=new Date().toISOString();
     var compressed=await compressAllImgs(S);
     // NE PAS écraser S.bg — garder l'original pour éviter dégradation progressive
     // Seulement mettre à jour avatar, gallery, manuel avec versions compressées
@@ -2040,10 +2061,29 @@ async function save(){
 function getKnownProps(){var r=localStorage.getItem('ths_known_props');return r?JSON.parse(r):[];}
 function addKnownProp(id,name){var arr=getKnownProps();var ex=arr.find(function(x){return x.id===id;});if(ex){ex.name=name;}else{arr.push({id:id,name:name});}localStorage.setItem('ths_known_props',JSON.stringify(arr));}
 
-function refreshPropSelect(){
+async function syncKnownPropsFromCloud(){
+  var url=getSupaUrl();var key=getSupaKey();
+  if(!url||!key)return;
+  try{
+    var r=await fetch(url+'/rest/v1/properties?select=id,data',{headers:{'apikey':key,'Authorization':'Bearer '+key}});
+    if(!r.ok)return;
+    var rows=await r.json();
+    if(!Array.isArray(rows)||!rows.length)return;
+    var arr=getKnownProps();
+    rows.forEach(function(row){
+      var name=(row.data&&row.data.name)?row.data.name:row.id;
+      var ex=arr.find(function(x){return x.id===row.id;});
+      if(ex){ex.name=name;}else{arr.push({id:row.id,name:name});}
+    });
+    localStorage.setItem('ths_known_props',JSON.stringify(arr));
+  }catch(e){}
+}
+
+async function refreshPropSelect(){
   var sel=document.getElementById('propSelect');if(!sel)return;
   var cid=getPropId();
   addKnownProp(cid,S.name||cid);
+  await syncKnownPropsFromCloud();
   var arr=getKnownProps();
   sel.innerHTML=arr.map(function(p){return '<option value="'+p.id+'"'+(p.id===cid?' selected':'')+'>'+esc(p.name)+'</option>';}).join('');
 }
