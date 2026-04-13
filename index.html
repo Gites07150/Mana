@@ -667,7 +667,7 @@ var HARDCODED_SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmF
 var HARDCODED_PROP_ID='Mana';
 var ANTHROPIC_KEY_STORE='ths_anthropic_key';
 var GROQ_KEY_STORE='ths_groq_key';
-var HARDCODED_GROQ_KEY='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';
+var HARDCODED_GROQ_KEY='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';
 function getGroqKey(){return HARDCODED_GROQ_KEY||(typeof S!=='undefined'&&S.aiKey?S.aiKey:'')||localStorage.getItem(GROQ_KEY_STORE)||'';}
 function getAnthropicKey(){return HARDCODED_GROQ_KEY||(typeof S!=='undefined'&&S.aiKey?S.aiKey:'')||localStorage.getItem(ANTHROPIC_KEY_STORE)||'';}
 function getSupaUrl(){return localStorage.getItem(SUPA_URL_KEY)||HARDCODED_SUPA_URL;}
