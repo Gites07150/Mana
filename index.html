@@ -670,6 +670,7 @@ var GROQ_KEY_STORE='ths_groq_key';
 var HARDCODED_GROQ_KEY='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';
 function getGroqKey(){return HARDCODED_GROQ_KEY||(typeof S!=='undefined'&&S.aiKey?S.aiKey:'')||localStorage.getItem(GROQ_KEY_STORE)||'';}
 function getAnthropicKey(){return HARDCODED_GROQ_KEY||(typeof S!=='undefined'&&S.aiKey?S.aiKey:'')||localStorage.getItem(ANTHROPIC_KEY_STORE)||'';}
+function getSupaUrl(){return localStorage.getItem(SUPA_URL_KEY)||HARDCODED_SUPA_URL;}
 function getSupaKey(){return localStorage.getItem(SUPA_KEY_KEY)||HARDCODED_SUPA_KEY;}
 function getPropId(){return localStorage.getItem(PROP_ID_KEY)||HARDCODED_PROP_ID;}
 
